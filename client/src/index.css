@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+/* ================================================
+   SLDS 2 (Salesforce Lightning Design System) Tokens
+   ================================================ */
+
+:root {
+  /* SLDS 2 Color Palette - Brand Tokens */
+  --slds-g-color-brand-base-50: #EAF5FE;
+  --slds-g-color-brand-base-60: #D8EDFD;
+  --slds-g-color-brand-base-65: #C9E4FB;
+  --slds-g-color-brand-base-70: #90C8F7;
+  --slds-g-color-brand-base-80: #1B96FF;
+  --slds-g-color-brand-base-90: #0176D3;
+  --slds-g-color-brand-base-100: #014486;
+  
+  /* SLDS 2 Neutral Colors */
+  --slds-g-color-neutral-base-10: #FFFFFF;
+  --slds-g-color-neutral-base-20: #F3F3F3;
+  --slds-g-color-neutral-base-30: #E5E5E5;
+  --slds-g-color-neutral-base-50: #C9C9C9;
+  --slds-g-color-neutral-base-60: #AEAEAE;
+  --slds-g-color-neutral-base-70: #747474;
+  --slds-g-color-neutral-base-80: #444444;
+  --slds-g-color-neutral-base-90: #181818;
+  --slds-g-color-neutral-base-100: #000000;
+  
+  /* SLDS 2 Success/Error/Warning */
+  --slds-g-color-success-base-50: #2E844A;
+  --slds-g-color-error-base-40: #EA001E;
+  --slds-g-color-warning-base-50: #DD7A01;
+  
+  /* AI-Generated Brand Tokens (overridden dynamically) */
+  --color-primary: #0176D3;
+  --color-secondary: #1B96FF;
+  --color-accent: #FF6B00;
+  --color-neutral-50: #F3F3F3;
+  --color-neutral-100: #E5E5E5;
+  --color-neutral-200: #C9C9C9;
+  --color-neutral-300: #AEAEAE;
+  --color-neutral-400: #747474;
+  --color-neutral-500: #5C5C5C;
+  --color-neutral-600: #444444;
+  --color-neutral-700: #2E2E2E;
+  --color-neutral-800: #181818;
+  --color-neutral-900: #000000;
+  
+  /* SLDS 2 Typography */
+  --slds-g-font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Inter', var(--slds-g-font-family);
+  --font-body: 'Inter', var(--slds-g-font-family);
+  
+  /* SLDS 2 Spacing Scale */
+  --slds-g-spacing-1: 0.25rem;
+  --slds-g-spacing-2: 0.5rem;
+  --slds-g-spacing-3: 0.75rem;
+  --slds-g-spacing-4: 1rem;
+  --slds-g-spacing-5: 1.25rem;
+  --slds-g-spacing-6: 1.5rem;
+  --slds-g-spacing-8: 2rem;
+  --slds-g-spacing-10: 2.5rem;
+  --slds-g-spacing-12: 3rem;
+  
+  --spacing-section: 6rem;
+  --spacing-component: 3rem;
+  --spacing-element: 1rem;
+  
+  /* SLDS 2 Border Radius */
+  --slds-g-radius-border-1: 0.25rem;
+  --slds-g-radius-border-2: 0.375rem;
+  --slds-g-radius-border-3: 0.5rem;
+  --slds-g-radius-border-4: 0.75rem;
+  --slds-g-radius-border-circle: 50%;
+  
+  --radius-small: var(--slds-g-radius-border-2);
+  --radius-medium: var(--slds-g-radius-border-3);
+  --radius-large: var(--slds-g-radius-border-4);
+  
+  /* SLDS 2 Shadows */
+  --slds-g-shadow-1: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --slds-g-shadow-2: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --slds-g-shadow-3: 0 8px 16px rgba(0, 0, 0, 0.15);
+  
+  --max-width: 80rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--slds-g-color-neutral-base-80);
+  background-color: var(--slds-g-color-neutral-base-10);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* ================================================
+   SLDS 2 Component Styles
+   ================================================ */
+
+/* SLDS Button - Base */
+.slds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--slds-g-spacing-2);
+  padding: var(--slds-g-spacing-3) var(--slds-g-spacing-6);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--slds-g-radius-border-2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.slds-button--brand {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.slds-button--brand:hover {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  transform: translateY(-1px);
+  box-shadow: var(--slds-g-shadow-2);
+}
+
+.slds-button--neutral {
+  background-color: white;
+  color: var(--slds-g-color-neutral-base-80);
+  border-color: var(--slds-g-color-neutral-base-50);
+}
+
+.slds-button--neutral:hover {
+  background-color: var(--slds-g-color-neutral-base-20);
+}
+
+.slds-button--outline-brand {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.slds-button--outline-brand:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* SLDS Card */
+.slds-card {
+  background-color: white;
+  border-radius: var(--slds-g-radius-border-3);
+  box-shadow: var(--slds-g-shadow-1);
+  border: 1px solid var(--slds-g-color-neutral-base-30);
+  overflow: hidden;
+}
+
+.slds-card:hover {
+  box-shadow: var(--slds-g-shadow-2);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+.slds-card__header {
+  padding: var(--slds-g-spacing-4);
+  border-bottom: 1px solid var(--slds-g-color-neutral-base-30);
+}
+
+.slds-card__body {
+  padding: var(--slds-g-spacing-4);
+}
+
+/* SLDS Badge/Pill */
+.slds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--slds-g-spacing-1) var(--slds-g-spacing-3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.slds-badge--brand {
+  background-color: var(--slds-g-color-brand-base-60);
+  color: var(--slds-g-color-brand-base-100);
+}
+
+/* SLDS Input */
+.slds-input {
+  width: 100%;
+  padding: var(--slds-g-spacing-3) var(--slds-g-spacing-4);
+  border: 1px solid var(--slds-g-color-neutral-base-50);
+  border-radius: var(--slds-g-radius-border-2);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--slds-g-color-neutral-base-80);
+  background-color: white;
+  transition: all 0.15s ease;
+}
+
+.slds-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(1, 118, 211, 0.15);
+}
+
+.slds-input::placeholder {
+  color: var(--slds-g-color-neutral-base-60);
+}
+
+/* SLDS Form Element */
+.slds-form-element__label {
+  display: flex;
+  align-items: center;
+  gap: var(--slds-g-spacing-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slds-g-color-neutral-base-80);
+  margin-bottom: var(--slds-g-spacing-2);
+}
+
+/* SLDS Section */
+.slds-section {
+  padding: var(--spacing-section) 0;
+}
+
+.slds-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--slds-g-spacing-6);
+}
+
+/* SLDS Grid */
+.slds-grid {
+  display: grid;
+  gap: var(--slds-g-spacing-6);
+}
+
+.slds-grid--2-col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.slds-grid--3-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.slds-grid--4-col {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .slds-grid--2-col,
+  .slds-grid--3-col,
+  .slds-grid--4-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Design Token Classes */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-accent { background-color: var(--color-accent); }
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+/* Loading spinner */
+.slds-spinner {
+  border: 3px solid var(--slds-g-color-neutral-base-30);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
