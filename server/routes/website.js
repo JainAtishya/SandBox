@@ -151,129 +151,71 @@ router.post('/generate', async (req, res) => {
       designReasoning = FALLBACK_REASONING;
     }
 
-    // Step 3: Generate Content for each section
+    // Step 3: Generate Content for each section (parallel for speed)
     console.log('📝 Step 3: Generating Content...');
     const sections = [];
     const content = {};
 
-    // Hero Section
-    try {
-      const heroPrompt = getHeroContentPrompt(businessName, brandDNA);
-      const heroContent = await generateJSON(heroPrompt);
-      sections.push({
-        id: 'hero-1',
-        type: 'hero',
-        content: heroContent,
-        variant: 'centered'
-      });
-      content.hero = heroContent;
-      console.log('✅ Hero content generated');
-    } catch (error) {
-      console.warn('⚠️ Hero content failed:', error.message);
-      const heroContent = {
-        headline: `Welcome to ${businessName}`,
-        subheadline: description.substring(0, 120),
-        cta: { text: 'Get Started', link: '#contact' }
-      };
-      sections.push({
-        id: 'hero-1',
-        type: 'hero',
-        content: heroContent,
-        variant: 'centered'
-      });
-      content.hero = heroContent;
-    }
+    const [
+      heroContent,
+      featuresContent,
+      testimonialsContent,
+      ctaContent
+    ] = await Promise.all([
+      generateSectionContent({
+        sectionName: 'Hero',
+        promptFactory: () => getHeroContentPrompt(businessName, brandDNA),
+        fallback: {
+          headline: `Welcome to ${businessName}`,
+          subheadline: description.substring(0, 120),
+          cta: { text: 'Get Started', link: '#contact' }
+        }
+      }),
+      generateSectionContent({
+        sectionName: 'Features',
+        promptFactory: () => getFeaturesContentPrompt(businessName, brandDNA),
+        fallback: {
+          title: `Why Choose ${businessName}`,
+          items: [
+            { icon: 'star', title: 'Quality Service', description: 'We deliver exceptional quality in everything we do.' },
+            { icon: 'users', title: 'Customer Focus', description: 'Your satisfaction is our top priority.' },
+            { icon: 'shield', title: 'Trusted & Reliable', description: 'Count on us to deliver consistent results.' },
+            { icon: 'zap', title: 'Fast & Efficient', description: 'Quick turnaround without compromising quality.' }
+          ]
+        }
+      }),
+      generateSectionContent({
+        sectionName: 'Testimonials',
+        promptFactory: () => getTestimonialsContentPrompt(businessName, brandDNA),
+        fallback: {
+          title: 'What Our Customers Say',
+          testimonials: [
+            { quote: 'Exceptional service that exceeded my expectations. Highly recommended!', author: 'Sarah M.', role: 'Happy Customer' },
+            { quote: 'Professional, reliable, and truly cares about their customers.', author: 'John D.', role: 'Business Owner' },
+            { quote: 'The best experience I\'ve had. Will definitely come back!', author: 'Emily R.', role: 'Regular Customer' }
+          ]
+        }
+      }),
+      generateSectionContent({
+        sectionName: 'CTA',
+        promptFactory: () => getCTAContentPrompt(businessName, brandDNA),
+        fallback: {
+          headline: 'Ready to Get Started?',
+          supportingText: 'Join our satisfied customers and experience the difference today.',
+          cta: { text: 'Contact Us', link: '#contact' }
+        }
+      })
+    ]);
 
-    // Features Section
-    try {
-      const featuresPrompt = getFeaturesContentPrompt(businessName, brandDNA);
-      const featuresContent = await generateJSON(featuresPrompt);
-      sections.push({
-        id: 'features-1',
-        type: 'features',
-        content: featuresContent,
-        variant: 'grid'
-      });
-      content.features = featuresContent;
-      console.log('✅ Features content generated');
-    } catch (error) {
-      console.warn('⚠️ Features content failed:', error.message);
-      const featuresContent = {
-        title: `Why Choose ${businessName}`,
-        items: [
-          { icon: 'star', title: 'Quality Service', description: 'We deliver exceptional quality in everything we do.' },
-          { icon: 'users', title: 'Customer Focus', description: 'Your satisfaction is our top priority.' },
-          { icon: 'shield', title: 'Trusted & Reliable', description: 'Count on us to deliver consistent results.' },
-          { icon: 'zap', title: 'Fast & Efficient', description: 'Quick turnaround without compromising quality.' }
-        ]
-      };
-      sections.push({
-        id: 'features-1',
-        type: 'features',
-        content: featuresContent,
-        variant: 'grid'
-      });
-      content.features = featuresContent;
-    }
+    sections.push({ id: 'hero-1', type: 'hero', content: heroContent, variant: 'centered' });
+    sections.push({ id: 'features-1', type: 'features', content: featuresContent, variant: 'grid' });
+    sections.push({ id: 'testimonials-1', type: 'testimonials', content: testimonialsContent, variant: 'grid' });
+    sections.push({ id: 'cta-1', type: 'cta', content: ctaContent, variant: 'centered' });
 
-    // Testimonials Section
-    try {
-      const testimonialsPrompt = getTestimonialsContentPrompt(businessName, brandDNA);
-      const testimonialsContent = await generateJSON(testimonialsPrompt);
-      sections.push({
-        id: 'testimonials-1',
-        type: 'testimonials',
-        content: testimonialsContent,
-        variant: 'grid'
-      });
-      content.testimonials = testimonialsContent;
-      console.log('✅ Testimonials content generated');
-    } catch (error) {
-      console.warn('⚠️ Testimonials content failed:', error.message);
-      const testimonialsContent = {
-        title: 'What Our Customers Say',
-        testimonials: [
-          { quote: 'Exceptional service that exceeded my expectations. Highly recommended!', author: 'Sarah M.', role: 'Happy Customer' },
-          { quote: 'Professional, reliable, and truly cares about their customers.', author: 'John D.', role: 'Business Owner' },
-          { quote: 'The best experience I\'ve had. Will definitely come back!', author: 'Emily R.', role: 'Regular Customer' }
-        ]
-      };
-      sections.push({
-        id: 'testimonials-1',
-        type: 'testimonials',
-        content: testimonialsContent,
-        variant: 'grid'
-      });
-      content.testimonials = testimonialsContent;
-    }
-
-    // CTA Section
-    try {
-      const ctaPrompt = getCTAContentPrompt(businessName, brandDNA);
-      const ctaContent = await generateJSON(ctaPrompt);
-      sections.push({
-        id: 'cta-1',
-        type: 'cta',
-        content: ctaContent,
-        variant: 'centered'
-      });
-      content.cta = ctaContent;
-      console.log('✅ CTA content generated');
-    } catch (error) {
-      console.warn('⚠️ CTA content failed:', error.message);
-      const ctaContent = {
-        headline: 'Ready to Get Started?',
-        supportingText: 'Join our satisfied customers and experience the difference today.',
-        cta: { text: 'Contact Us', link: '#contact' }
-      };
-      sections.push({
-        id: 'cta-1',
-        type: 'cta',
-        content: ctaContent,
-        variant: 'centered'
-      });
-      content.cta = ctaContent;
-    }
+    content.hero = heroContent;
+    content.features = featuresContent;
+    content.testimonials = testimonialsContent;
+    content.cta = ctaContent;
 
     // Footer Section
     sections.push({
@@ -416,6 +358,17 @@ function solvePainPoint(painPoint) {
     }
   }
   return "Quality";
+}
+
+async function generateSectionContent({ sectionName, promptFactory, fallback }) {
+  try {
+    const result = await generateJSON(promptFactory());
+    console.log(`✅ ${sectionName} content generated`);
+    return result;
+  } catch (error) {
+    console.warn(`⚠️ ${sectionName} content failed:`, error.message);
+    return fallback;
+  }
 }
 
 // Helper function to generate reasoning from tokens and brand

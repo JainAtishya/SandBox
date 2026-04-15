@@ -4,13 +4,22 @@ import Features from '../core/Features';
 import Testimonials from '../core/Testimonials';
 import CTA from '../core/CTA';
 import Footer from '../core/Footer';
-import { Download, RefreshCw, Eye, Code, Palette, Edit3, Layers, Monitor, Tablet, Smartphone, CheckCircle, Zap, Box } from 'lucide-react';
+import { Download, RefreshCw, Eye, Code, Palette, Edit3, Monitor, Tablet, Smartphone, CheckCircle, Zap, Box, Trash2 } from 'lucide-react';
 
 export default function WebsitePreview({ data, onRegenerate }) {
   const [websiteData, setWebsiteData] = useState(data);
   const [activeTab, setActiveTab] = useState('preview');
   const [editMode, setEditMode] = useState(false);
   const [viewMode, setViewMode] = useState('desktop'); // desktop, tablet, mobile
+  const [activeSectionId, setActiveSectionId] = useState('');
+  const [removedSections, setRemovedSections] = useState([]);
+  const [tokenDraft, setTokenDraft] = useState({
+    primary: data?.designTokens?.colors?.primary || '#3B82F6',
+    secondary: data?.designTokens?.colors?.secondary || '#8B5CF6',
+    accent: data?.designTokens?.colors?.accent || '#10B981',
+    headingFont: data?.designTokens?.typography?.fontFamily?.heading || 'Inter',
+    bodyFont: data?.designTokens?.typography?.fontFamily?.body || 'Inter'
+  });
 
   const { brandDNA, designTokens, sections, businessName, content, variationName } = websiteData;
 
@@ -71,14 +80,92 @@ export default function WebsitePreview({ data, onRegenerate }) {
 
   }, [designTokens]);
 
+  // Create default sections if none exist
+  const displaySections = sections?.length > 0 ? sections : [
+    { id: 'hero', type: 'hero', content: content?.hero || {} },
+    { id: 'features', type: 'features', content: content?.features || {} },
+    { id: 'testimonials', type: 'testimonials', content: content?.testimonials || {} },
+    { id: 'cta', type: 'cta', content: content?.cta || {} },
+    { id: 'footer', type: 'footer', content: {} }
+  ];
+
   // Human-AI Collaboration: Update section content
   const handleSectionUpdate = (sectionId, newContent) => {
-    const updatedSections = sections?.map(section => 
+    const updatedSections = displaySections.map(section => 
       section.id === sectionId 
         ? { ...section, content: newContent }
         : section
-    ) || [];
-    setWebsiteData({ ...websiteData, sections: updatedSections });
+    );
+    setWebsiteData({
+      ...websiteData,
+      sections: updatedSections,
+      content: syncContentFromSections(updatedSections, websiteData.content || {})
+    });
+  };
+
+  const handleSectionDelete = (sectionId) => {
+    const sectionToRemove = displaySections.find((section) => section.id === sectionId);
+    if (!sectionToRemove) return;
+
+    const updatedSections = displaySections.filter((section) => section.id !== sectionId);
+
+    setWebsiteData({
+      ...websiteData,
+      sections: updatedSections,
+      content: syncContentFromSections(updatedSections, websiteData.content || {})
+    });
+    setRemovedSections((prev) => [...prev, sectionToRemove]);
+
+    if (activeSectionId === sectionId) {
+      setActiveSectionId(updatedSections[0]?.id || '');
+    }
+  };
+
+  const handleRestoreSection = (sectionId) => {
+    const sectionToRestore = removedSections.find((section) => section.id === sectionId);
+    if (!sectionToRestore) return;
+
+    const restoredSections = [...displaySections, sectionToRestore];
+    setWebsiteData({
+      ...websiteData,
+      sections: restoredSections,
+      content: syncContentFromSections(restoredSections, websiteData.content || {})
+    });
+    setRemovedSections((prev) => prev.filter((section) => section.id !== sectionId));
+    setActiveSectionId(sectionToRestore.id);
+  };
+
+  const updateSectionField = (sectionId, updater) => {
+    const section = displaySections.find((s) => s.id === sectionId);
+    if (!section) return;
+
+    const nextContent = typeof updater === 'function' ? updater(section.content || {}) : updater;
+    handleSectionUpdate(sectionId, nextContent);
+  };
+
+  const applyTokenChanges = () => {
+    const nextDesignTokens = {
+      ...(websiteData.designTokens || {}),
+      colors: {
+        ...(websiteData.designTokens?.colors || {}),
+        primary: tokenDraft.primary,
+        secondary: tokenDraft.secondary,
+        accent: tokenDraft.accent
+      },
+      typography: {
+        ...(websiteData.designTokens?.typography || {}),
+        fontFamily: {
+          ...(websiteData.designTokens?.typography?.fontFamily || {}),
+          heading: tokenDraft.headingFont,
+          body: tokenDraft.bodyFont
+        }
+      }
+    };
+
+    setWebsiteData((prev) => ({
+      ...prev,
+      designTokens: nextDesignTokens
+    }));
   };
 
   // Export website as JSON
@@ -150,8 +237,8 @@ export default function WebsitePreview({ data, onRegenerate }) {
 
   const getViewWidth = () => {
     switch (viewMode) {
-      case 'tablet': return 'max-w-[768px]';
-      case 'mobile': return 'max-w-[375px]';
+      case 'tablet': return 'max-w-[768px] px-2';
+      case 'mobile': return 'max-w-[375px] px-2';
       default: return 'w-full';
     }
   };
@@ -180,14 +267,7 @@ export default function WebsitePreview({ data, onRegenerate }) {
     }
   };
 
-  // Create default sections if none exist
-  const displaySections = sections?.length > 0 ? sections : [
-    { id: 'hero', type: 'hero', content: content?.hero || {} },
-    { id: 'features', type: 'features', content: content?.features || {} },
-    { id: 'testimonials', type: 'testimonials', content: content?.testimonials || {} },
-    { id: 'cta', type: 'cta', content: content?.cta || {} },
-    { id: 'footer', type: 'footer', content: {} }
-  ];
+  const activeSection = displaySections.find((section) => section.id === activeSectionId) || displaySections[0] || null;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -280,12 +360,18 @@ export default function WebsitePreview({ data, onRegenerate }) {
       {/* Content Area */}
       <div className="flex">
         {/* Main Content */}
-        <div className="flex-1">
+        <div className={`flex-1 ${editMode && activeTab === 'preview' ? 'xl:pr-96' : ''}`}>
           {activeTab === 'preview' && (
             <div className={`mx-auto transition-all ${getViewWidth()}`}>
               {/* Website Preview */}
-              <div className="bg-white min-h-screen">
-                {displaySections.map(renderSection)}
+              <div className={`bg-white min-h-screen website-preview-frame website-preview-frame--${viewMode}`}>
+                {displaySections.length > 0 ? (
+                  displaySections.map(renderSection)
+                ) : (
+                  <div className="min-h-[50vh] flex items-center justify-center text-slate-500">
+                    All sections removed. Restore one from the editor panel.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -590,7 +676,310 @@ export default function WebsitePreview({ data, onRegenerate }) {
             </div>
           )}
         </div>
+
+        {activeTab === 'preview' && editMode && (
+          <aside className="hidden xl:block fixed right-0 top-[132px] bottom-0 w-96 bg-slate-900 border-l border-slate-800 overflow-y-auto p-4">
+            <h3 className="text-white font-semibold mb-3">Edit Sections</h3>
+
+            <div className="space-y-2 mb-4">
+              {displaySections.map((section) => (
+                <div
+                  key={section.id}
+                  className={`p-3 rounded-lg border ${
+                    activeSection?.id === section.id
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 bg-slate-800/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSectionId(section.id)}
+                      className="text-left flex-1"
+                    >
+                      <p className="text-sm font-medium text-white capitalize">{section.type}</p>
+                      <p className="text-xs text-slate-400">Editable</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSectionDelete(section.id)}
+                      className="p-2 rounded-md bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
+                      title="Remove section"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {removedSections.length > 0 && (
+              <div className="mb-4 border-t border-slate-700 pt-4">
+                <h4 className="text-xs uppercase tracking-wide text-slate-400 mb-2">Removed sections</h4>
+                <div className="space-y-2">
+                  {removedSections.map((section) => (
+                    <button
+                      key={section.id}
+                      type="button"
+                      onClick={() => handleRestoreSection(section.id)}
+                      className="w-full text-left px-3 py-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:border-green-500/50 text-slate-200"
+                    >
+                      <span className="text-sm capitalize">{section.type}</span>
+                      <span className="block text-xs text-green-400">Restore</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4 border-t border-slate-700 pt-4">
+              <h4 className="text-xs uppercase tracking-wide text-slate-400 mb-2">Design controls</h4>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Primary color</label>
+                  <input
+                    type="color"
+                    value={tokenDraft.primary}
+                    onChange={(e) => setTokenDraft((prev) => ({ ...prev, primary: e.target.value }))}
+                    className="w-full h-9 rounded bg-slate-800 border border-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Secondary color</label>
+                  <input
+                    type="color"
+                    value={tokenDraft.secondary}
+                    onChange={(e) => setTokenDraft((prev) => ({ ...prev, secondary: e.target.value }))}
+                    className="w-full h-9 rounded bg-slate-800 border border-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Accent color</label>
+                  <input
+                    type="color"
+                    value={tokenDraft.accent}
+                    onChange={(e) => setTokenDraft((prev) => ({ ...prev, accent: e.target.value }))}
+                    className="w-full h-9 rounded bg-slate-800 border border-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Heading font</label>
+                  <select
+                    value={tokenDraft.headingFont}
+                    onChange={(e) => setTokenDraft((prev) => ({ ...prev, headingFont: e.target.value }))}
+                    className="w-full px-2 py-2 rounded bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+                  >
+                    {['Inter', 'Poppins', 'Montserrat', 'Roboto', 'Open Sans', 'Lora', 'Merriweather'].map((font) => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Body font</label>
+                  <select
+                    value={tokenDraft.bodyFont}
+                    onChange={(e) => setTokenDraft((prev) => ({ ...prev, bodyFont: e.target.value }))}
+                    className="w-full px-2 py-2 rounded bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+                  >
+                    {['Inter', 'Poppins', 'Montserrat', 'Roboto', 'Open Sans', 'Lora', 'Merriweather'].map((font) => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={applyTokenChanges}
+                  className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
+                >
+                  Apply design changes
+                </button>
+              </div>
+            </div>
+
+            {activeSection && (
+              <div className="space-y-3 border-t border-slate-700 pt-4">
+                {activeSection.type === 'hero' && (
+                  <>
+                    <LabeledInput
+                      label="Headline"
+                      value={activeSection.content?.headline || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, headline: v }))}
+                    />
+                    <LabeledTextarea
+                      label="Subheadline"
+                      value={activeSection.content?.subheadline || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, subheadline: v }))}
+                    />
+                    <LabeledInput
+                      label="CTA text"
+                      value={activeSection.content?.cta?.text || ''}
+                      onChange={(v) =>
+                        updateSectionField(activeSection.id, (content) => ({
+                          ...content,
+                          cta: { ...(content.cta || {}), text: v }
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                {activeSection.type === 'features' && (
+                  <>
+                    <LabeledInput
+                      label="Section title"
+                      value={activeSection.content?.title || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, title: v }))}
+                    />
+                    <LabeledTextarea
+                      label="Items (Title | Description per line)"
+                      value={formatFeaturesTextarea(activeSection.content)}
+                      onChange={(v) =>
+                        updateSectionField(activeSection.id, (content) => ({
+                          ...content,
+                          items: parseFeaturesTextarea(v),
+                          features: parseFeaturesTextarea(v)
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                {activeSection.type === 'testimonials' && (
+                  <>
+                    <LabeledInput
+                      label="Section title"
+                      value={activeSection.content?.title || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, title: v }))}
+                    />
+                    <LabeledTextarea
+                      label="Testimonials (Quote | Author | Role)"
+                      value={formatTestimonialsTextarea(activeSection.content)}
+                      onChange={(v) =>
+                        updateSectionField(activeSection.id, (content) => ({
+                          ...content,
+                          testimonials: parseTestimonialsTextarea(v)
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                {activeSection.type === 'cta' && (
+                  <>
+                    <LabeledInput
+                      label="Headline"
+                      value={activeSection.content?.headline || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, headline: v }))}
+                    />
+                    <LabeledTextarea
+                      label="Supporting text"
+                      value={activeSection.content?.supportingText || ''}
+                      onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, supportingText: v }))}
+                    />
+                    <LabeledInput
+                      label="CTA text"
+                      value={activeSection.content?.cta?.text || ''}
+                      onChange={(v) =>
+                        updateSectionField(activeSection.id, (content) => ({
+                          ...content,
+                          cta: { ...(content.cta || {}), text: v }
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                {activeSection.type === 'footer' && (
+                  <LabeledTextarea
+                    label="Footer description"
+                    value={activeSection.content?.description || ''}
+                    onChange={(v) => updateSectionField(activeSection.id, (content) => ({ ...content, description: v }))}
+                  />
+                )}
+              </div>
+            )}
+          </aside>
+        )}
       </div>
     </div>
   );
+}
+
+function syncContentFromSections(sections, existingContent) {
+  const nextContent = { ...(existingContent || {}) };
+  sections.forEach((section) => {
+    if (section.type && section.content) {
+      nextContent[section.type] = section.content;
+    }
+  });
+  return nextContent;
+}
+
+function LabeledInput({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-slate-400 mb-1">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+      />
+    </label>
+  );
+}
+
+function LabeledTextarea({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-slate-400 mb-1">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm resize-y"
+      />
+    </label>
+  );
+}
+
+function formatFeaturesTextarea(content) {
+  const items = content?.items || content?.features || [];
+  return items.map((item) => `${item.title || ''} | ${item.description || ''}`).join('\n');
+}
+
+function parseFeaturesTextarea(value) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [title, description] = line.split('|').map((part) => (part || '').trim());
+      return {
+        icon: ['star', 'users', 'zap', 'target'][index % 4],
+        title: title || `Feature ${index + 1}`,
+        description: description || 'Feature description'
+      };
+    });
+}
+
+function formatTestimonialsTextarea(content) {
+  const items = content?.testimonials || [];
+  return items
+    .map((item) => `${item.quote || ''} | ${item.author || ''} | ${item.role || ''}`)
+    .join('\n');
+}
+
+function parseTestimonialsTextarea(value) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [quote, author, role] = line.split('|').map((part) => (part || '').trim());
+      return {
+        quote: quote || 'Great service!',
+        author: author || `Customer ${index + 1}`,
+        role: role || 'Customer'
+      };
+    });
 }

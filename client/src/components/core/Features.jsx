@@ -61,7 +61,7 @@ export default function Features({ content, variant = 'grid', onContentUpdate })
       <div className="slds-container">
         {/* SLDS Section Header */}
         <div className="text-center mb-16">
-          <span className="slds-badge slds-badge--brand mb-4">Features</span>
+          <span className="slds-badge slds-badge_lightest mb-4">Features</span>
           <h2 
             className="text-3xl md:text-4xl font-bold mb-4"
             style={{ 
@@ -78,7 +78,7 @@ export default function Features({ content, variant = 'grid', onContentUpdate })
         </div>
 
         {/* SLDS Grid with Cards */}
-        <div className="slds-grid slds-grid--4-col">
+        <div className="slds-grid slds-grid--4-col items-stretch">
           {features.map((feature, index) => (
             <div
               key={index}
@@ -123,13 +123,13 @@ export default function Features({ content, variant = 'grid', onContentUpdate })
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleSave(index)}
-                        className="slds-button slds-button--brand flex-1"
+                        className="slds-button slds-button_brand flex-1"
                       >
                         <Check className="w-4 h-4" /> Save
                       </button>
                       <button
                         onClick={handleCancel}
-                        className="slds-button slds-button--neutral"
+                        className="slds-button slds-button_neutral"
                       >
                         <X className="w-4 h-4" />
                       </button>
