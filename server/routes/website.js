@@ -376,7 +376,7 @@ function generateReasoningFromTokens(tokens, brandDNA) {
 
 function deepMergeWithFallback(fallback, value) {
   if (Array.isArray(fallback)) {
-    return Array.isArray(value) && value.length > 0 ? value : fallback;
+    return Array.isArray(value) ? value : fallback;
   }
 
   if (fallback && typeof fallback === 'object') {
@@ -389,7 +389,14 @@ function deepMergeWithFallback(fallback, value) {
 
     for (const key of Object.keys(source)) {
       if (!(key in merged)) {
-        merged[key] = source[key];
+        const sourceValue = source[key];
+        if (Array.isArray(sourceValue)) {
+          merged[key] = deepMergeWithFallback([], sourceValue);
+        } else if (sourceValue && typeof sourceValue === 'object') {
+          merged[key] = deepMergeWithFallback({}, sourceValue);
+        } else {
+          merged[key] = sourceValue;
+        }
       }
     }
 
