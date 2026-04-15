@@ -106,9 +106,9 @@ router.post('/generate', async (req, res) => {
       const completePrompt = getCompleteWebsitePrompt(businessName, description, tone, audience);
       const result = await generateJSON(completePrompt);
       
-      brandDNA = result.brandDNA || FALLBACK_BRAND_DNA;
-      designTokens = result.designTokens || FALLBACK_DESIGN_TOKENS;
-      designReasoning = result.designReasoning || FALLBACK_REASONING;
+      brandDNA = deepMergeWithFallback(FALLBACK_BRAND_DNA, result.brandDNA);
+      designTokens = deepMergeWithFallback(FALLBACK_DESIGN_TOKENS, result.designTokens);
+      designReasoning = deepMergeWithFallback(FALLBACK_REASONING, result.designReasoning);
       
       // Ensure personality scores exist
       if (!brandDNA.personality) {
@@ -372,6 +372,31 @@ function generateReasoningFromTokens(tokens, brandDNA) {
     typography: `${font} was selected for its ${tones.includes('modern') ? 'modern, clean appearance' : 'excellent readability'} that complements your ${tones[0]} brand tone. It works well for your ${brandDNA.audience?.primary || 'target audience'}.`,
     layout: `A ${layoutStyle} layout aligns with your ${tones[0]} brand positioning and creates the visual hierarchy needed to communicate your key messages effectively to ${brandDNA.audience?.primary || 'your audience'}.`
   };
+}
+
+function deepMergeWithFallback(fallback, value) {
+  if (Array.isArray(fallback)) {
+    return Array.isArray(value) && value.length > 0 ? value : fallback;
+  }
+
+  if (fallback && typeof fallback === 'object') {
+    const merged = {};
+    const source = value && typeof value === 'object' ? value : {};
+
+    for (const key of Object.keys(fallback)) {
+      merged[key] = deepMergeWithFallback(fallback[key], source[key]);
+    }
+
+    for (const key of Object.keys(source)) {
+      if (!(key in merged)) {
+        merged[key] = source[key];
+      }
+    }
+
+    return merged;
+  }
+
+  return value === undefined || value === null || value === '' ? fallback : value;
 }
 
 module.exports = router;
