@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { generateJSON } = require('../services/geminiService');
-const { getBrandDNAPrompt } = require('../prompts/brandDNA');
-const { getDesignDecisionsPrompt } = require('../prompts/designDecisions');
-const { 
-  getHeroContentPrompt, 
-  getFeaturesContentPrompt, 
-  getTestimonialsContentPrompt, 
-  getCTAContentPrompt 
-} = require('../prompts/contentGeneration');
+const { getCompleteWebsitePrompt } = require('../prompts/websiteGeneration');
 
 // Fallback values in case AI fails
 const FALLBACK_BRAND_DNA = {
@@ -102,12 +95,20 @@ router.post('/generate', async (req, res) => {
 
     console.log(`🎯 Generating website for: ${businessName}`);
 
-    // Step 1: Extract Brand DNA with enhanced personality data
-    console.log('📊 Step 1: Extracting Brand DNA...');
-    let brandDNA;
+    let brandDNA = FALLBACK_BRAND_DNA;
+    let designTokens = FALLBACK_DESIGN_TOKENS;
+    let designReasoning = FALLBACK_REASONING;
+    const sections = [];
+    const content = {};
+
     try {
-      const brandPrompt = getBrandDNAPrompt(businessName, description, tone, audience);
-      brandDNA = await generateJSON(brandPrompt);
+      console.log('🤖 Generating complete website content via Gemini (Single Call)...');
+      const completePrompt = getCompleteWebsitePrompt(businessName, description, tone, audience);
+      const result = await generateJSON(completePrompt);
+      
+      brandDNA = result.brandDNA || FALLBACK_BRAND_DNA;
+      designTokens = result.designTokens || FALLBACK_DESIGN_TOKENS;
+      designReasoning = result.designReasoning || FALLBACK_REASONING;
       
       // Ensure personality scores exist
       if (!brandDNA.personality) {
@@ -119,86 +120,36 @@ router.post('/generate', async (req, res) => {
       if (!brandDNA.audiencePersonas) {
         brandDNA.audiencePersonas = generatePersonasFromAudience(brandDNA.audience);
       }
-      
-      console.log('✅ Brand DNA extracted');
-    } catch (error) {
-      console.warn('⚠️ Brand DNA generation failed, using fallback:', error.message);
-      brandDNA = FALLBACK_BRAND_DNA;
-    }
 
-    // Step 2: Generate Design Tokens with Reasoning
-    console.log('🎨 Step 2: Generating Design Tokens...');
-    let designTokens;
-    let designReasoning;
-    try {
-      const designPrompt = getDesignDecisionsPrompt(brandDNA);
-      const designResult = await generateJSON(designPrompt);
-      
-      // Extract reasoning if included in response
-      if (designResult.reasoning) {
-        designReasoning = designResult.reasoning;
-        delete designResult.reasoning;
-        designTokens = designResult;
-      } else {
-        designTokens = designResult;
-        designReasoning = generateReasoningFromTokens(designTokens, brandDNA);
+      if (result.content) {
+        if (result.content.hero) content.hero = result.content.hero;
+        if (result.content.features) content.features = result.content.features;
+        if (result.content.testimonials) content.testimonials = result.content.testimonials;
+        if (result.content.cta) content.cta = result.content.cta;
       }
       
-      console.log('✅ Design tokens generated');
+      console.log('✅ Website generated successfully!');
     } catch (error) {
-      console.warn('⚠️ Design tokens generation failed, using fallback:', error.message);
-      designTokens = FALLBACK_DESIGN_TOKENS;
-      designReasoning = FALLBACK_REASONING;
+      console.warn('⚠️ Website generation failed, using fallbacks entirely:', error.message);
     }
-
-    // Step 3: Generate Content for each section
-    console.log('📝 Step 3: Generating Content...');
-    const sections = [];
-    const content = {};
-
-    // Hero Section
-    try {
-      const heroPrompt = getHeroContentPrompt(businessName, brandDNA);
-      const heroContent = await generateJSON(heroPrompt);
-      sections.push({
-        id: 'hero-1',
-        type: 'hero',
-        content: heroContent,
-        variant: 'centered'
-      });
-      content.hero = heroContent;
-      console.log('✅ Hero content generated');
-    } catch (error) {
-      console.warn('⚠️ Hero content failed:', error.message);
-      const heroContent = {
+    
+    // Provide fallbacks if missing content
+    if (!content.hero) {
+      content.hero = {
         headline: `Welcome to ${businessName}`,
         subheadline: description.substring(0, 120),
         cta: { text: 'Get Started', link: '#contact' }
       };
-      sections.push({
-        id: 'hero-1',
-        type: 'hero',
-        content: heroContent,
-        variant: 'centered'
-      });
-      content.hero = heroContent;
     }
+    sections.push({
+      id: 'hero-1',
+      type: 'hero',
+      content: content.hero,
+      variant: 'centered'
+    });
 
-    // Features Section
-    try {
-      const featuresPrompt = getFeaturesContentPrompt(businessName, brandDNA);
-      const featuresContent = await generateJSON(featuresPrompt);
-      sections.push({
-        id: 'features-1',
-        type: 'features',
-        content: featuresContent,
-        variant: 'grid'
-      });
-      content.features = featuresContent;
-      console.log('✅ Features content generated');
-    } catch (error) {
-      console.warn('⚠️ Features content failed:', error.message);
-      const featuresContent = {
+    if (!content.features) {
+      content.features = {
         title: `Why Choose ${businessName}`,
         items: [
           { icon: 'star', title: 'Quality Service', description: 'We deliver exceptional quality in everything we do.' },
@@ -207,30 +158,20 @@ router.post('/generate', async (req, res) => {
           { icon: 'zap', title: 'Fast & Efficient', description: 'Quick turnaround without compromising quality.' }
         ]
       };
-      sections.push({
-        id: 'features-1',
-        type: 'features',
-        content: featuresContent,
-        variant: 'grid'
-      });
-      content.features = featuresContent;
     }
+    // Rename items to match expected
+    if (content.features.items === undefined && content.features.features) {
+      content.features.items = content.features.features;
+    }
+    sections.push({
+      id: 'features-1',
+      type: 'features',
+      content: content.features,
+      variant: 'grid'
+    });
 
-    // Testimonials Section
-    try {
-      const testimonialsPrompt = getTestimonialsContentPrompt(businessName, brandDNA);
-      const testimonialsContent = await generateJSON(testimonialsPrompt);
-      sections.push({
-        id: 'testimonials-1',
-        type: 'testimonials',
-        content: testimonialsContent,
-        variant: 'grid'
-      });
-      content.testimonials = testimonialsContent;
-      console.log('✅ Testimonials content generated');
-    } catch (error) {
-      console.warn('⚠️ Testimonials content failed:', error.message);
-      const testimonialsContent = {
+    if (!content.testimonials) {
+      content.testimonials = {
         title: 'What Our Customers Say',
         testimonials: [
           { quote: 'Exceptional service that exceeded my expectations. Highly recommended!', author: 'Sarah M.', role: 'Happy Customer' },
@@ -238,42 +179,31 @@ router.post('/generate', async (req, res) => {
           { quote: 'The best experience I\'ve had. Will definitely come back!', author: 'Emily R.', role: 'Regular Customer' }
         ]
       };
-      sections.push({
-        id: 'testimonials-1',
-        type: 'testimonials',
-        content: testimonialsContent,
-        variant: 'grid'
-      });
-      content.testimonials = testimonialsContent;
     }
+    // Expected to be named testimonials in the UI sometimes
+    if (content.testimonials.testimonials === undefined && content.testimonials.items) {
+      content.testimonials.testimonials = content.testimonials.items;
+    }
+    sections.push({
+      id: 'testimonials-1',
+      type: 'testimonials',
+      content: content.testimonials,
+      variant: 'grid'
+    });
 
-    // CTA Section
-    try {
-      const ctaPrompt = getCTAContentPrompt(businessName, brandDNA);
-      const ctaContent = await generateJSON(ctaPrompt);
-      sections.push({
-        id: 'cta-1',
-        type: 'cta',
-        content: ctaContent,
-        variant: 'centered'
-      });
-      content.cta = ctaContent;
-      console.log('✅ CTA content generated');
-    } catch (error) {
-      console.warn('⚠️ CTA content failed:', error.message);
-      const ctaContent = {
+    if (!content.cta) {
+      content.cta = {
         headline: 'Ready to Get Started?',
         supportingText: 'Join our satisfied customers and experience the difference today.',
         cta: { text: 'Contact Us', link: '#contact' }
       };
-      sections.push({
-        id: 'cta-1',
-        type: 'cta',
-        content: ctaContent,
-        variant: 'centered'
-      });
-      content.cta = ctaContent;
     }
+    sections.push({
+      id: 'cta-1',
+      type: 'cta',
+      content: content.cta,
+      variant: 'centered'
+    });
 
     // Footer Section
     sections.push({
