@@ -1,60 +1,26 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Sliders, Eye, RefreshCw, ChevronRight, Sparkles } from 'lucide-react'
-import { generateWebsite } from '../../services/api'
+import { useState } from 'react'
+import { Sliders, Eye, ChevronRight, GripVertical, ChevronUp, ChevronDown, Plus, Trash2 } from 'lucide-react'
 
-// Custom Slider Component
-const BrandSlider = ({ label, leftLabel, rightLabel, value, onChange }) => {
-  return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-white">{label}</span>
-        <span className="text-xs text-slate-400">{value}%</span>
-      </div>
-      <div className="relative">
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
-            [&::-webkit-slider-thumb]:h-5
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-gradient-to-r
-            [&::-webkit-slider-thumb]:from-blue-500
-            [&::-webkit-slider-thumb]:to-purple-500
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-webkit-slider-thumb]:hover:scale-110"
-        />
-        <div 
-          className="absolute top-0 left-0 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 pointer-events-none"
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <div className="flex justify-between mt-1">
-        <span className="text-xs text-slate-500">{leftLabel}</span>
-        <span className="text-xs text-slate-500">{rightLabel}</span>
-      </div>
-    </div>
-  )
-}
+const SECTION_LIBRARY = [
+  { key: 'hero-main', type: 'hero', label: 'Hero', description: 'Main opening section', maxCount: 1 },
+  { key: 'features-services', type: 'features', label: 'Services', description: 'What you offer', maxCount: 1 },
+  { key: 'features-benefits', type: 'features', label: 'Benefits', description: 'Why customers choose you', maxCount: 1 },
+  { key: 'features-about', type: 'features', label: 'About Us', description: 'Brand story and values', maxCount: 1 },
+  { key: 'features-faq', type: 'features', label: 'FAQ', description: 'Common customer questions', maxCount: 1 },
+  { key: 'testimonials-main', type: 'testimonials', label: 'Testimonials', description: 'Social proof', maxCount: 1 },
+  { key: 'testimonials-case', type: 'testimonials', label: 'Success Stories', description: 'Results and wins', maxCount: 1 },
+  { key: 'cta-main', type: 'cta', label: 'Call To Action', description: 'Conversion section', maxCount: 1 },
+  { key: 'footer-main', type: 'footer', label: 'Footer', description: 'Contact and links', maxCount: 1 }
+]
 
 // Mini Preview Component
-const MiniPreview = ({ data, tuning }) => {
-  const { colors, typography, spacing } = data.designTokens || {}
+const MiniPreview = ({ data }) => {
+  const { colors, typography } = data.designTokens || {}
   
   const primaryColor = colors?.primary || '#3B82F6'
   const secondaryColor = colors?.secondary || '#8B5CF6'
   
-  // Calculate border radius based on playfulness
-  const borderRadius = tuning.playful > 60 ? '16px' : tuning.playful > 40 ? '8px' : '4px'
-  
-  // Calculate spacing based on bold/subtle
-  const paddingScale = tuning.bold > 60 ? 1.3 : tuning.bold > 40 ? 1 : 0.8
+  const borderRadius = data.designTokens?.borderRadius?.medium || '8px'
   
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-2xl">
@@ -63,7 +29,7 @@ const MiniPreview = ({ data, tuning }) => {
         className="p-6 text-center"
         style={{ 
           background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}15)`,
-          padding: `${24 * paddingScale}px`
+          padding: '24px'
         }}
       >
         <h3 
@@ -82,7 +48,7 @@ const MiniPreview = ({ data, tuning }) => {
           style={{ 
             backgroundColor: primaryColor, 
             borderRadius,
-            padding: `${8 * paddingScale}px ${16 * paddingScale}px`
+            padding: '8px 16px'
           }}
           className="text-white text-sm font-medium transition-transform hover:scale-105"
         >
@@ -122,65 +88,74 @@ const MiniPreview = ({ data, tuning }) => {
 }
 
 export default function BrandTuningStudio({ data, onProceed }) {
-  const [tuning, setTuning] = useState({
-    professional: 50,
-    playful: 30,
-    bold: 60,
-    subtle: 40,
-    modern: 70,
-    classic: 30
+  const defaultSections = getDefaultSections(data)
+  const [previewData, setPreviewData] = useState({
+    ...data,
+    sections: defaultSections,
+    content: syncContentFromSections(defaultSections, data.content || {})
   })
-  
-  const [isRegenerating, setIsRegenerating] = useState(false)
-  const [previewData, setPreviewData] = useState(data)
-  const [hasChanges, setHasChanges] = useState(false)
-  
-  const handleSliderChange = (key, value) => {
-    setTuning(prev => ({ ...prev, [key]: value }))
-    setHasChanges(true)
-  }
-  
-  const handleRegenerate = async () => {
-    setIsRegenerating(true)
-    
-    try {
-      // Create adjusted brand input based on tuning
-      const adjustedInput = {
-        businessName: data.businessName,
-        description: data.description,
-        tone: getToneFromTuning(tuning),
-        audience: data.audience
-      }
-      
-      const result = await generateWebsite(adjustedInput)
-      setPreviewData(result)
-      setHasChanges(false)
-    } catch (error) {
-      console.error('Regeneration failed:', error)
-    } finally {
-      setIsRegenerating(false)
-    }
-  }
-  
-  const getToneFromTuning = (t) => {
-    const tones = []
-    if (t.professional > 60) tones.push('professional')
-    if (t.playful > 60) tones.push('playful', 'friendly')
-    if (t.bold > 60) tones.push('bold', 'confident')
-    if (t.subtle > 60) tones.push('subtle', 'elegant')
-    if (t.modern > 60) tones.push('modern', 'innovative')
-    if (t.classic > 60) tones.push('classic', 'traditional')
-    return tones.length > 0 ? tones.join(', ') : 'professional, balanced'
-  }
+  const [sections, setSections] = useState(defaultSections)
+  const [activeSection, setActiveSection] = useState(defaultSections[0]?.id || 'hero')
+  const [showSectionSuggestions, setShowSectionSuggestions] = useState(false)
   
   const handleProceed = () => {
     // Pass tuned data to next step
     const tunedData = {
       ...previewData,
-      tuning
+      sections,
+      content: syncContentFromSections(sections, previewData.content || {})
     }
     onProceed(tunedData)
   }
+
+  const updateSections = (nextSections) => {
+    setSections(nextSections)
+    setPreviewData((prev) => ({
+      ...prev,
+      sections: nextSections,
+      content: syncContentFromSections(nextSections, prev.content || {})
+    }))
+  }
+
+  const moveSection = (sectionId, direction) => {
+    const index = sections.findIndex((s) => s.id === sectionId)
+    if (index === -1) return
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= sections.length) return
+    const next = [...sections]
+    ;[next[index], next[swapIndex]] = [next[swapIndex], next[index]]
+    updateSections(next)
+  }
+
+  const removeSection = (sectionId) => {
+    const next = sections.filter((s) => s.id !== sectionId)
+    updateSections(next)
+    if (activeSection === sectionId) {
+      setActiveSection(next[0]?.id || '')
+    }
+  }
+
+  const addSection = (template) => {
+    if (!canAddTemplate(template, sections)) return
+    const newSection = createSectionFromTemplate(template, data, sections)
+    const next = [...sections, newSection]
+    updateSections(next)
+    setActiveSection(newSection.id)
+    setShowSectionSuggestions(false)
+  }
+
+  const updateSectionContent = (sectionId, updater) => {
+    const next = sections.map((section) => {
+      if (section.id !== sectionId) return section
+      return {
+        ...section,
+        content: typeof updater === 'function' ? updater(section.content || {}) : updater
+      }
+    })
+    updateSections(next)
+  }
+
+  const activeSectionData = sections.find((s) => s.id === activeSection)
   
   return (
     <div className="min-h-screen bg-slate-950 py-8">
@@ -189,180 +164,224 @@ export default function BrandTuningStudio({ data, onProceed }) {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 text-purple-400 text-sm mb-4">
             <Sliders className="w-4 h-4" />
-            <span>Brand Tuning Studio</span>
+            <span>Brand Content Studio</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Fine-Tune Your Brand Expression
+            Edit Content & Components
           </h1>
           <p className="text-slate-400">
-            Adjust the sliders and watch your website transform in real-time
+            Arrange sections and refine your messaging before visual style variations
           </p>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Sliders Panel */}
+          {/* Components Panel */}
           <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
             <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-purple-400" />
-              Brand Dimensions
+              <GripVertical className="w-5 h-5 text-blue-400" />
+              Components & Order
             </h3>
-            
-            <BrandSlider
-              label="Tone"
-              leftLabel="Professional"
-              rightLabel="Playful"
-              value={tuning.playful}
-              onChange={(v) => {
-                handleSliderChange('playful', v)
-                handleSliderChange('professional', 100 - v)
-              }}
-            />
-            
-            <BrandSlider
-              label="Expression"
-              leftLabel="Bold"
-              rightLabel="Subtle"
-              value={tuning.subtle}
-              onChange={(v) => {
-                handleSliderChange('subtle', v)
-                handleSliderChange('bold', 100 - v)
-              }}
-            />
-            
-            <BrandSlider
-              label="Style"
-              leftLabel="Modern"
-              rightLabel="Classic"
-              value={tuning.classic}
-              onChange={(v) => {
-                handleSliderChange('classic', v)
-                handleSliderChange('modern', 100 - v)
-              }}
-            />
-            
-            {/* Regenerate Button */}
-            <div className="mt-8 pt-6 border-t border-slate-700">
+
+            <div className="space-y-3 mb-5">
+              {sections.map((section, index) => (
+                <div
+                  key={section.id}
+                  className={`rounded-xl border px-4 py-3 transition ${
+                    activeSection === section.id
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 bg-slate-800/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection(section.id)}
+                      className="text-left flex-1"
+                    >
+                      <p className="text-sm font-semibold text-white">{section.label || section.type}</p>
+                      <p className="text-xs text-slate-400">Edit content and arrangement</p>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveSection(section.id, 'up')}
+                        disabled={index === 0}
+                        className="p-2 rounded-lg bg-slate-700/60 text-slate-200 disabled:opacity-30"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveSection(section.id, 'down')}
+                        disabled={index === sections.length - 1}
+                        className="p-2 rounded-lg bg-slate-700/60 text-slate-200 disabled:opacity-30"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSection(section.id)}
+                        className="p-2 rounded-lg bg-rose-500/20 text-rose-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-slate-700 pt-4">
               <button
-                onClick={handleRegenerate}
-                disabled={isRegenerating || !hasChanges}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-                  hasChanges 
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500' 
-                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                }`}
+                type="button"
+                onClick={() => setShowSectionSuggestions((prev) => !prev)}
+                className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition"
               >
-                {isRegenerating ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Apply Changes with AI
-                  </>
-                )}
+                <Plus className="w-4 h-4" />
+                Add section suggestions
               </button>
-              {hasChanges && !isRegenerating && (
-                <p className="text-xs text-amber-400 text-center mt-2">
-                  You have unsaved changes. Click to regenerate with new settings.
-                </p>
+
+              {showSectionSuggestions && (
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  {SECTION_LIBRARY.map((template) => {
+                    const disabled = !canAddTemplate(template, sections)
+                    return (
+                      <button
+                        key={template.key}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => addSection(template)}
+                        className={`text-left px-3 py-2 rounded-lg border transition ${
+                          disabled
+                            ? 'border-slate-800 bg-slate-900/50 text-slate-600 cursor-not-allowed'
+                            : 'border-slate-700 bg-slate-800/40 text-slate-200 hover:border-blue-500/50'
+                        }`}
+                      >
+                        <p className="text-sm font-medium">{template.label}</p>
+                        <p className="text-xs text-slate-400">{template.description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
               )}
             </div>
-            
-            {/* Current Settings */}
-            <div className="mt-6 p-4 bg-slate-800/50 rounded-xl">
-              <h4 className="text-sm font-medium text-white mb-3">Current Brand Profile</h4>
-              <div className="flex flex-wrap gap-2">
-                {tuning.professional > 50 && (
-                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full">Professional</span>
-                )}
-                {tuning.playful > 50 && (
-                  <span className="px-2 py-1 bg-pink-500/20 text-pink-400 text-xs rounded-full">Playful</span>
-                )}
-                {tuning.bold > 50 && (
-                  <span className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full">Bold</span>
-                )}
-                {tuning.subtle > 50 && (
-                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full">Subtle</span>
-                )}
-                {tuning.modern > 50 && (
-                  <span className="px-2 py-1 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">Modern</span>
-                )}
-                {tuning.classic > 50 && (
-                  <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full">Classic</span>
-                )}
-              </div>
-            </div>
           </div>
-          
-          {/* Preview Panel */}
+
+          {/* Content Editor */}
           <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Eye className="w-5 h-5 text-green-400" />
-              Live Preview
-            </h3>
-            
-            <div className="relative">
-              {isRegenerating && (
-                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
-                  <div className="text-center">
-                    <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-slate-300">AI is regenerating your design...</p>
-                  </div>
-                </div>
-              )}
-              
-              <MiniPreview data={previewData} tuning={tuning} />
-              
-              <p className="text-xs text-slate-500 text-center mt-4">
-                This is a simplified preview. Full website will be generated next.
-              </p>
-            </div>
-            
-            {/* Design Token Preview */}
-            <div className="mt-6 p-4 bg-slate-800/50 rounded-xl">
-              <h4 className="text-sm font-medium text-white mb-3">Active Design Tokens</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-xs text-slate-500">Primary</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div 
-                      className="w-6 h-6 rounded-md"
-                      style={{ backgroundColor: previewData.designTokens?.colors?.primary || '#3B82F6' }}
-                    />
-                    <span className="text-xs text-slate-300 font-mono">
-                      {previewData.designTokens?.colors?.primary || '#3B82F6'}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500">Secondary</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div 
-                      className="w-6 h-6 rounded-md"
-                      style={{ backgroundColor: previewData.designTokens?.colors?.secondary || '#8B5CF6' }}
-                    />
-                    <span className="text-xs text-slate-300 font-mono">
-                      {previewData.designTokens?.colors?.secondary || '#8B5CF6'}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500">Font</span>
-                  <p className="text-sm text-slate-300 mt-1" style={{ fontFamily: previewData.designTokens?.typography?.fontFamily?.heading }}>
-                    {previewData.designTokens?.typography?.fontFamily?.heading || 'Inter'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500">Border Radius</span>
-                  <p className="text-sm text-slate-300 mt-1">
-                    {previewData.designTokens?.borderRadius?.medium || '8px'}
-                  </p>
-                </div>
+            <h3 className="text-lg font-semibold text-white mb-4">Content Editor</h3>
+            {!activeSectionData && <p className="text-slate-400 text-sm">Select a section to edit.</p>}
+
+            {activeSectionData?.type === 'hero' && (
+              <div className="space-y-3">
+                <LabeledInput
+                  label="Headline"
+                  value={activeSectionData.content?.headline || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, headline: v }))}
+                />
+                <LabeledTextarea
+                  label="Subheadline"
+                  value={activeSectionData.content?.subheadline || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, subheadline: v }))}
+                />
+                <LabeledInput
+                  label="Primary CTA Text"
+                  value={activeSectionData.content?.cta?.text || ''}
+                  onChange={(v) =>
+                    updateSectionContent(activeSectionData.id, (content) => ({
+                      ...content,
+                      cta: { ...(content.cta || {}), text: v }
+                    }))
+                  }
+                />
               </div>
-            </div>
+            )}
+
+            {activeSectionData?.type === 'features' && (
+              <div className="space-y-3">
+                <LabeledInput
+                  label="Section Title"
+                  value={activeSectionData.content?.title || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, title: v }))}
+                />
+                <LabeledTextarea
+                  label="Features (one per line: Title | Description)"
+                  value={formatFeaturesTextarea(activeSectionData.content)}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({
+                    ...content,
+                    items: parseFeaturesTextarea(v),
+                    features: parseFeaturesTextarea(v)
+                  }))}
+                />
+              </div>
+            )}
+
+            {activeSectionData?.type === 'testimonials' && (
+              <div className="space-y-3">
+                <LabeledInput
+                  label="Section Title"
+                  value={activeSectionData.content?.title || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, title: v }))}
+                />
+                <LabeledTextarea
+                  label="Testimonials (one per line: Quote | Author | Role)"
+                  value={formatTestimonialsTextarea(activeSectionData.content)}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({
+                    ...content,
+                    testimonials: parseTestimonialsTextarea(v)
+                  }))}
+                />
+              </div>
+            )}
+
+            {activeSectionData?.type === 'cta' && (
+              <div className="space-y-3">
+                <LabeledInput
+                  label="Headline"
+                  value={activeSectionData.content?.headline || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, headline: v }))}
+                />
+                <LabeledTextarea
+                  label="Supporting text"
+                  value={activeSectionData.content?.supportingText || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, supportingText: v }))}
+                />
+                <LabeledInput
+                  label="CTA text"
+                  value={activeSectionData.content?.cta?.text || ''}
+                  onChange={(v) =>
+                    updateSectionContent(activeSectionData.id, (content) => ({
+                      ...content,
+                      cta: { ...(content.cta || {}), text: v }
+                    }))
+                  }
+                />
+              </div>
+            )}
+
+            {activeSectionData?.type === 'footer' && (
+              <div className="space-y-3">
+                <LabeledTextarea
+                  label="Footer description"
+                  value={activeSectionData.content?.description || ''}
+                  onChange={(v) => updateSectionContent(activeSectionData.id, (content) => ({ ...content, description: v }))}
+                />
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Preview Panel */}
+        <div className="mt-8 bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
+          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+            <Eye className="w-5 h-5 text-green-400" />
+            Content Preview
+          </h3>
+          <MiniPreview data={previewData} />
+          <p className="text-xs text-slate-500 text-center mt-4">
+            This keeps content structure ready. Visual style options come in the next step.
+          </p>
         </div>
         
         {/* Continue Button */}
@@ -371,14 +390,175 @@ export default function BrandTuningStudio({ data, onProceed }) {
             onClick={handleProceed}
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
-            Generate Design Variations
+            Continue to Design Variations
             <ChevronRight className="w-5 h-5" />
           </button>
           <p className="text-sm text-slate-500 mt-3">
-            We'll create 3 unique interpretations of your brand
+            Next, choose one of 3 visual styles for this tuned content
           </p>
         </div>
       </div>
     </div>
   )
+}
+
+function LabeledInput({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-slate-400 mb-1">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm"
+      />
+    </label>
+  )
+}
+
+function LabeledTextarea({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-slate-400 mb-1">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm resize-y"
+      />
+    </label>
+  )
+}
+
+function getDefaultSections(data) {
+  if (data?.sections?.length) return data.sections
+  return ['hero', 'features', 'testimonials', 'cta', 'footer'].map((type) =>
+    createSectionTemplate(type, data, { label: toTitleCase(type), templateKey: `${type}-default` })
+  )
+}
+
+function createSectionTemplate(type, data, metadata = {}) {
+  const content = data?.content || {}
+  const baseDescription = data?.description || `Welcome to ${data?.businessName || 'our business'}`
+  const defaults = {
+    hero: {
+      headline: content.hero?.headline || `Welcome to ${data?.businessName || 'Our Business'}`,
+      subheadline: content.hero?.subheadline || baseDescription,
+      cta: content.hero?.cta || { text: 'Get Started', link: '#contact' }
+    },
+    features: {
+      title: content.features?.title || `Why Choose ${data?.businessName || 'Us'}`,
+      items: content.features?.items || content.features?.features || [
+        { icon: 'star', title: 'Quality', description: 'Consistent quality you can trust.' },
+        { icon: 'users', title: 'Customer Focus', description: 'Built around your needs.' },
+        { icon: 'zap', title: 'Fast Service', description: 'Quick and reliable delivery.' }
+      ]
+    },
+    testimonials: {
+      title: content.testimonials?.title || 'What Our Customers Say',
+      testimonials: content.testimonials?.testimonials || [
+        { quote: 'Great experience and service!', author: 'Happy Customer', role: 'Client' },
+        { quote: 'Professional and reliable team.', author: 'Business Owner', role: 'Partner' }
+      ]
+    },
+    cta: {
+      headline: content.cta?.headline || 'Ready to Get Started?',
+      supportingText: content.cta?.supportingText || 'Let us help your business grow today.',
+      cta: content.cta?.cta || { text: 'Contact Us', link: '#contact' }
+    },
+    footer: {
+      description: content.footer?.description || content.hero?.subheadline || baseDescription
+    }
+  }
+
+  return {
+    id: `${type}-1`,
+    type,
+    label: metadata.label || toTitleCase(type),
+    templateKey: metadata.templateKey || `${type}-default`,
+    variant: type === 'features' || type === 'testimonials' ? 'grid' : 'centered',
+    content: defaults[type]
+  }
+}
+
+function createSectionFromTemplate(template, data, existingSections) {
+  const sameTypeCount = existingSections.filter((section) => section.type === template.type).length
+  const section = createSectionTemplate(template.type, data, {
+    label: template.label,
+    templateKey: template.key
+  })
+  return {
+    ...section,
+    id: `${template.type}-${sameTypeCount + 1}`
+  }
+}
+
+function canAddTemplate(template, existingSections) {
+  const singleInstanceTypes = ['hero', 'cta', 'footer']
+  if (singleInstanceTypes.includes(template.type)) {
+    const existingByType = existingSections.filter((section) => section.type === template.type).length
+    if (existingByType >= 1) return false
+  }
+
+  const existingForTemplate = existingSections.filter((section) => section.templateKey === template.key).length
+  return existingForTemplate < (template.maxCount || 1)
+}
+
+function toTitleCase(value) {
+  const upperMap = {
+    cta: 'CTA',
+    faq: 'FAQ'
+  }
+  return upperMap[value.toLowerCase()] || value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function syncContentFromSections(sections, existingContent) {
+  const nextContent = { ...(existingContent || {}) }
+  sections.forEach((section) => {
+    if (section.type && section.content) {
+      nextContent[section.type] = section.content
+    }
+  })
+  return nextContent
+}
+
+function formatFeaturesTextarea(content) {
+  const items = content?.items || content?.features || []
+  return items.map((item) => `${item.title || ''} | ${item.description || ''}`).join('\n')
+}
+
+function parseFeaturesTextarea(value) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [title, description] = line.split('|').map((part) => (part || '').trim())
+      return {
+        icon: ['star', 'users', 'zap', 'target'][index % 4],
+        title: title || `Feature ${index + 1}`,
+        description: description || 'Feature description'
+      }
+    })
+}
+
+function formatTestimonialsTextarea(content) {
+  const items = content?.testimonials || []
+  return items
+    .map((item) => `${item.quote || ''} | ${item.author || ''} | ${item.role || ''}`)
+    .join('\n')
+}
+
+function parseTestimonialsTextarea(value) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [quote, author, role] = line.split('|').map((part) => (part || '').trim())
+      return {
+        quote: quote || 'Great service!',
+        author: author || `Customer ${index + 1}`,
+        role: role || 'Customer'
+      }
+    })
 }
