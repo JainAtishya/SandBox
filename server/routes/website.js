@@ -396,7 +396,7 @@ function deepMergeWithFallback(fallback, value) {
     return merged;
   }
 
-  return value === undefined || value === null || value === '' ? fallback : value;
+  return value === undefined || value === null ? fallback : value;
 }
 
 module.exports = router;
