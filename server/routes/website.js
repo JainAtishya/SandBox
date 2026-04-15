@@ -105,11 +105,11 @@ router.post('/generate', async (req, res) => {
       console.log('🤖 Generating complete website content via Gemini (Single Call)...');
       const completePrompt = getCompleteWebsitePrompt(businessName, description, tone, audience);
       const result = await generateJSON(completePrompt);
-      
+
       brandDNA = { ...FALLBACK_BRAND_DNA, ...result.brandDNA } || FALLBACK_BRAND_DNA;
       designTokens = { ...FALLBACK_DESIGN_TOKENS, ...result.designTokens } || FALLBACK_DESIGN_TOKENS;
       designReasoning = { ...FALLBACK_REASONING, ...result.designReasoning } || FALLBACK_REASONING;
-      
+
       // Ensure personality scores exist
       if (!brandDNA.personality) {
         brandDNA.personality = generatePersonalityFromTone(brandDNA.tone || []);
@@ -127,12 +127,12 @@ router.post('/generate', async (req, res) => {
         if (result.content.testimonials) content.testimonials = result.content.testimonials;
         if (result.content.cta) content.cta = result.content.cta;
       }
-      
+
       console.log('✅ Website generated successfully!');
     } catch (error) {
       console.warn('⚠️ Website generation failed, using fallbacks entirely:', error.message);
     }
-    
+
     // Provide fallbacks if missing content
     if (!content.hero) {
       content.hero = {
@@ -180,7 +180,7 @@ router.post('/generate', async (req, res) => {
         ]
       };
     }
-    
+
     sections.push({
       id: 'testimonials-1',
       type: 'testimonials',
@@ -227,9 +227,9 @@ router.post('/generate', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Website generation error:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate website', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Failed to generate website',
+      details: error.message
     });
   }
 });
@@ -247,9 +247,9 @@ function generatePersonalityFromTone(tones) {
     innovative: { professional: 60, friendly: 50, bold: 70, elegant: 55, innovative: 95 },
     traditional: { professional: 80, friendly: 50, bold: 35, elegant: 70, innovative: 25 }
   };
-  
+
   let result = { professional: 60, friendly: 60, bold: 50, elegant: 50, innovative: 60 };
-  
+
   tones.forEach(tone => {
     const mapping = toneToPersonality[tone.toLowerCase()];
     if (mapping) {
@@ -258,7 +258,7 @@ function generatePersonalityFromTone(tones) {
       });
     }
   });
-  
+
   return result;
 }
 
@@ -274,9 +274,9 @@ function generateEmotionsFromEmotion(emotions) {
     energetic: { trust: 55, calm: 30, joy: 90, confidence: 80 },
     sophisticated: { trust: 80, calm: 70, joy: 50, confidence: 85 }
   };
-  
+
   let result = { trust: 70, calm: 60, joy: 60, confidence: 70 };
-  
+
   emotions.forEach(emotion => {
     const mapping = emotionMapping[emotion.toLowerCase()];
     if (mapping) {
@@ -285,7 +285,7 @@ function generateEmotionsFromEmotion(emotions) {
       });
     }
   });
-  
+
   return result;
 }
 
@@ -297,21 +297,21 @@ function generatePersonasFromAudience(audienceData) {
       { name: "Jordan", role: "Decision Maker", age: "30-55", values: ["Reliability", "Results", "Service"] }
     ];
   }
-  
+
   const primary = audienceData.primary || "General audience";
   const demographics = audienceData.demographics || "All ages";
-  
+
   return [
-    { 
-      name: "Alex", 
-      role: primary.substring(0, 30), 
-      age: extractAgeRange(demographics), 
+    {
+      name: "Alex",
+      role: primary.substring(0, 30),
+      age: extractAgeRange(demographics),
       values: audienceData.psychographics ? audienceData.psychographics.split(',').slice(0, 3).map(s => s.trim()) : ["Quality", "Value"]
     },
-    { 
-      name: "Jordan", 
-      role: "Ideal Customer", 
-      age: extractAgeRange(demographics), 
+    {
+      name: "Jordan",
+      role: "Ideal Customer",
+      age: extractAgeRange(demographics),
       values: audienceData.painPoints ? audienceData.painPoints.slice(0, 3).map(p => solvePainPoint(p)) : ["Trust", "Service"]
     }
   ];
@@ -336,7 +336,7 @@ function solvePainPoint(painPoint) {
     "fast": "Speed",
     "convenient": "Convenience"
   };
-  
+
   for (const [key, value] of Object.entries(conversions)) {
     if (painPoint.toLowerCase().includes(key)) {
       return value;
@@ -352,7 +352,7 @@ function generateReasoningFromTokens(tokens, brandDNA) {
   const layoutStyle = tokens.layout?.style || 'centered';
   const tones = brandDNA.tone || ['professional'];
   const industry = brandDNA.industry || 'business';
-  
+
   return {
     color: `I chose ${primaryColor} because it evokes ${tones[0]} and resonates with your ${industry} audience. This color creates the ${brandDNA.emotion?.[0] || 'trustworthy'} feeling your brand aims to convey.`,
     typography: `${font} was selected for its ${tones.includes('modern') ? 'modern, clean appearance' : 'excellent readability'} that complements your ${tones[0]} brand tone. It works well for your ${brandDNA.audience?.primary || 'target audience'}.`,

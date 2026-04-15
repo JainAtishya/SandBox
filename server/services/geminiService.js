@@ -75,14 +75,14 @@ if (DEBUG_MODE && !fs.existsSync(LOGS_DIR)) {
 
 async function saveDebugLog(prompt, rawText, parsedJson, error = null) {
   if (!DEBUG_MODE) return;
-  
+
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const uniqueSuffix = Math.random().toString(36).substring(2, 8);
     const logFile = path.join(LOGS_DIR, `gemini-call-${timestamp}-${uniqueSuffix}.json`);
-    
+
     // Create a redacted copy to prevent sensitive data leaks in logs
-    const redactedPrompt = typeof prompt === 'string' 
+    const redactedPrompt = typeof prompt === 'string'
       ? prompt.replace(/Business Name: (.*)\n/, 'Business Name: [REDACTED]\n')
       : prompt;
 
@@ -93,7 +93,7 @@ async function saveDebugLog(prompt, rawText, parsedJson, error = null) {
       parsedResult: parsedJson,
       error: error ? error.message : null
     };
-    
+
     await fs.promises.writeFile(logFile, JSON.stringify(logData, null, 2));
     console.log(`[DEBUG] Gemini input/output saved to: ${logFile}`);
   } catch (writeError) {

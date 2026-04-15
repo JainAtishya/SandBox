@@ -1,5 +1,5 @@
 function getCompleteWebsitePrompt(businessName, description, tone, audience) {
-  return `You are an expert brand strategist, product designer, and copywriter.
+    return `You are an expert brand strategist, product designer, and copywriter.
 Your task: Analyze the following business and generate its Brand DNA, Design System, and Website Content in a single step.
 
 **Business Information:**
