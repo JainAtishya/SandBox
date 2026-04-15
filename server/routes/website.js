@@ -132,7 +132,7 @@ router.post('/generate', async (req, res) => {
     } catch (error) {
       console.warn('⚠️ Website generation failed, using fallbacks entirely:', error.message);
     }
-    
+
     // Provide fallbacks if missing content
     if (!content.hero) {
       content.hero = {
@@ -346,6 +346,17 @@ function solvePainPoint(painPoint) {
     }
   }
   return "Quality";
+}
+
+async function generateSectionContent({ sectionName, promptFactory, fallback }) {
+  try {
+    const result = await generateJSON(promptFactory());
+    console.log(`✅ ${sectionName} content generated`);
+    return result;
+  } catch (error) {
+    console.warn(`⚠️ ${sectionName} content failed:`, error.message);
+    return fallback;
+  }
 }
 
 // Helper function to generate reasoning from tokens and brand

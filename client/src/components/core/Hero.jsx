@@ -1,30 +1,30 @@
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function Hero({ content, variant = 'centered' }) {
   const { headline, subheadline, cta } = content || {};
+  const fullText = `${headline || ''} ${subheadline || ''}`.toLowerCase();
+  const isPremium = /premium|luxury|exclusive|elegant|sophisticated|high-end/.test(fullText);
 
   return (
     <section 
       className="slds-section relative overflow-hidden"
       style={{ 
-        background: `linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)`
+        background: isPremium
+          ? `linear-gradient(135deg, #0F172A 0%, #1E293B 45%, #111827 100%)`
+          : `linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)`
       }}
     >
       {/* SLDS Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 25% 25%, white 2px, transparent 2px)`,
-          backgroundSize: '50px 50px'
+          backgroundImage: isPremium
+            ? `radial-gradient(circle at 25% 25%, rgba(250,204,21,0.9) 1px, transparent 1px)`
+            : `radial-gradient(circle at 25% 25%, white 2px, transparent 2px)`,
+          backgroundSize: isPremium ? '70px 70px' : '50px 50px'
         }} />
       </div>
 
       <div className="slds-container relative text-center">
-        {/* SLDS Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium mb-6">
-          <Sparkles className="w-4 h-4" />
-          AI-Generated Brand Experience
-        </div>
-
         {/* Headline */}
         <h1 
           className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-slide-up"
@@ -46,7 +46,7 @@ export default function Hero({ content, variant = 'centered' }) {
           {cta && (
             <a
               href={cta.link || '#contact'}
-              className="slds-button slds-button--brand px-8 py-4 text-lg"
+              className="slds-button slds-button_brand px-8 py-4 text-lg"
               style={{ 
                 backgroundColor: 'var(--color-accent)',
                 borderColor: 'var(--color-accent)',
@@ -59,7 +59,7 @@ export default function Hero({ content, variant = 'centered' }) {
           )}
           <a
             href="#features"
-            className="slds-button slds-button--outline-brand px-8 py-4 text-lg border-2 border-white/30 text-white hover:bg-white/10"
+            className="slds-button slds-button_outline-brand px-8 py-4 text-lg border-2 border-white/30 text-white hover:bg-white/10"
             style={{ borderRadius: 'var(--radius-medium)' }}
           >
             Learn More

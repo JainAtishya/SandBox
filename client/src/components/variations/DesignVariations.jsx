@@ -7,11 +7,16 @@ const VariationCard = ({ variation, isSelected, onSelect, isLoading }) => {
   const { name, description, icon: Icon, data } = variation
   const colors = data?.designTokens?.colors || {}
   const typography = data?.designTokens?.typography || {}
+  const cardThemeClass = variation.id === 'premium'
+    ? 'variation-premium'
+    : variation.id === 'approachable'
+      ? 'variation-approachable'
+      : 'variation-confident'
   
   return (
     <div
       onClick={() => !isLoading && onSelect()}
-      className={`relative bg-slate-900/50 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
+      className={`relative bg-slate-900/50 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden variation-card ${cardThemeClass} ${
         isSelected 
           ? 'border-blue-500 ring-4 ring-blue-500/20' 
           : 'border-slate-700 hover:border-slate-600'
@@ -52,26 +57,31 @@ const VariationCard = ({ variation, isSelected, onSelect, isLoading }) => {
         <div className="bg-white">
           {/* Hero Section Preview */}
           <div 
-            className="p-6 text-center"
+            className={`p-6 text-center relative overflow-hidden`}
             style={{ 
-              background: `linear-gradient(135deg, ${colors.primary}10, ${colors.secondary || colors.primary}10)`
+              background: variation.id === 'premium'
+                ? 'linear-gradient(135deg, #0f172a 0%, #1f2937 45%, #111827 100%)'
+                : `linear-gradient(135deg, ${colors.primary}12, ${colors.secondary || colors.primary}08)`
             }}
           >
+            {variation.id === 'premium' && (
+              <div className="absolute inset-0 premium-shimmer" />
+            )}
             <h4 
               className="text-xl font-bold mb-2"
               style={{ 
-                color: colors.primary,
+                color: variation.id === 'premium' ? '#F8FAFC' : colors.primary,
                 fontFamily: typography.fontFamily?.heading || 'Inter'
               }}
             >
               {data.content?.hero?.headline || data.businessName}
             </h4>
-            <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+            <p className={`text-sm mb-4 line-clamp-2 ${variation.id === 'premium' ? 'text-slate-200' : 'text-slate-600'}`}>
               {data.content?.hero?.subheadline || 'Your brand message here'}
             </p>
             <button
-              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-transform hover:scale-105"
-              style={{ backgroundColor: colors.primary }}
+              className={`px-4 py-2 text-white text-sm font-medium rounded-lg transition-transform hover:scale-105 ${variation.id === 'premium' ? 'premium-glow-btn' : ''}`}
+              style={{ backgroundColor: variation.id === 'premium' ? '#C9A45C' : colors.primary }}
             >
               {data.content?.hero?.cta?.text || 'Get Started'}
             </button>
@@ -199,7 +209,14 @@ export default function DesignVariations({ data, onSelect }) {
           tone: variation.tone,
           audience: data.audience
         })
-        updatedVariations.push({ ...variation, data: result })
+        const mergedResult = data.sections?.length
+          ? {
+              ...result,
+              sections: data.sections,
+              content: syncContentFromSections(data.sections, result.content || data.content || {})
+            }
+          : result
+        updatedVariations.push({ ...variation, data: mergedResult })
       } catch (error) {
         console.error(`Failed to generate ${variation.name}:`, error)
         // Use the original data as fallback with some modifications
@@ -227,9 +244,14 @@ export default function DesignVariations({ data, onSelect }) {
     // Create slightly different tokens for each variation as fallback
     const baseTokens = tokens || {}
     const colorAdjustments = {
-      confident: { primary: '#1D4ED8', secondary: '#7C3AED', accent: '#DC2626' },
-      approachable: { primary: '#059669', secondary: '#0891B2', accent: '#F59E0B' },
-      premium: { primary: '#1F2937', secondary: '#6B7280', accent: '#D97706' }
+      confident: { primary: '#1E40AF', secondary: '#7C3AED', accent: '#DC2626' },
+      approachable: { primary: '#0F766E', secondary: '#0EA5E9', accent: '#F59E0B' },
+      premium: { primary: '#2B1B3B', secondary: '#C9A45C', accent: '#F4B400' }
+    }
+    const typographyAdjustments = {
+      confident: { heading: 'Montserrat', body: 'Roboto' },
+      approachable: { heading: 'Inter', body: 'Open Sans' },
+      premium: { heading: 'Playfair Display', body: 'Lora' }
     }
     
     return {
@@ -237,6 +259,13 @@ export default function DesignVariations({ data, onSelect }) {
       colors: {
         ...baseTokens.colors,
         ...colorAdjustments[variationId]
+      },
+      typography: {
+        ...baseTokens.typography,
+        fontFamily: {
+          ...(baseTokens.typography?.fontFamily || {}),
+          ...(typographyAdjustments[variationId] || {})
+        }
       }
     }
   }
@@ -338,4 +367,14 @@ export default function DesignVariations({ data, onSelect }) {
       </div>
     </div>
   )
+}
+
+function syncContentFromSections(sections, existingContent) {
+  const nextContent = { ...(existingContent || {}) }
+  sections.forEach((section) => {
+    if (section.type && section.content) {
+      nextContent[section.type] = section.content
+    }
+  })
+  return nextContent
 }
