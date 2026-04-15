@@ -2,6 +2,7 @@
   "name": "sandbox-workspace",
   "version": "1.0.0",
   "description": "Root workspace to run client and server concurrently",
+  "private": true,
   "scripts": {
     "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
     "start:client": "cd client && npm run dev",

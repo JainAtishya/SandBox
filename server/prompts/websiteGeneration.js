@@ -55,7 +55,7 @@ Write conversion-focused copy matching the brand's tone and addressing audience 
 Include:
 - hero: headline (6-10 words), subheadline (15-25 words), cta { text, link: "#contact" }
 - features: title, items array (4 items, each with icon, title, description). Valid icons: shield, star, clock, heart, users, leaf, zap, award, target, sparkles, check, trending.
-- testimonials: title, items array (3 items, each with quote, author, role)
+- testimonials: title, testimonials array (3 items, each with quote, author, role)
 - cta: headline, supportingText, cta { text, link: "#contact" }
 
 ### OUTPUT FORMAT
@@ -91,7 +91,7 @@ Return ONLY valid JSON (no markdown, no explanations) exactly like this structur
   "content": {
     "hero": { "headline": "", "subheadline": "", "cta": { "text": "", "link": "" } },
     "features": { "title": "", "items": [ { "icon": "", "title": "", "description": "" } ] },
-    "testimonials": { "title": "", "items": [ { "quote": "", "author": "", "role": "" } ] },
+    "testimonials": { "title": "", "testimonials": [ { "quote": "", "author": "", "role": "" } ] },
     "cta": { "headline": "", "supportingText": "", "cta": { "text": "", "link": "" } }
   }
 }`;

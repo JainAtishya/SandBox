@@ -106,9 +106,9 @@ router.post('/generate', async (req, res) => {
       const completePrompt = getCompleteWebsitePrompt(businessName, description, tone, audience);
       const result = await generateJSON(completePrompt);
       
-      brandDNA = result.brandDNA || FALLBACK_BRAND_DNA;
-      designTokens = result.designTokens || FALLBACK_DESIGN_TOKENS;
-      designReasoning = result.designReasoning || FALLBACK_REASONING;
+      brandDNA = { ...FALLBACK_BRAND_DNA, ...result.brandDNA } || FALLBACK_BRAND_DNA;
+      designTokens = { ...FALLBACK_DESIGN_TOKENS, ...result.designTokens } || FALLBACK_DESIGN_TOKENS;
+      designReasoning = { ...FALLBACK_REASONING, ...result.designReasoning } || FALLBACK_REASONING;
       
       // Ensure personality scores exist
       if (!brandDNA.personality) {
@@ -180,10 +180,7 @@ router.post('/generate', async (req, res) => {
         ]
       };
     }
-    // Expected to be named testimonials in the UI sometimes
-    if (content.testimonials.testimonials === undefined && content.testimonials.items) {
-      content.testimonials.testimonials = content.testimonials.items;
-    }
+    
     sections.push({
       id: 'testimonials-1',
       type: 'testimonials',
