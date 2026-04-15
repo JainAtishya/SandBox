@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { generateJSON } = require('../services/geminiService');
-const { getBrandDNAPrompt } = require('../prompts/brandDNA');
-const { getDesignDecisionsPrompt } = require('../prompts/designDecisions');
-const { 
-  getHeroContentPrompt, 
-  getFeaturesContentPrompt, 
-  getTestimonialsContentPrompt, 
-  getCTAContentPrompt 
-} = require('../prompts/contentGeneration');
+const { getCompleteWebsitePrompt } = require('../prompts/websiteGeneration');
 
 // Fallback values in case AI fails
 const FALLBACK_BRAND_DNA = {
@@ -102,13 +95,21 @@ router.post('/generate', async (req, res) => {
 
     console.log(`🎯 Generating website for: ${businessName}`);
 
-    // Step 1: Extract Brand DNA with enhanced personality data
-    console.log('📊 Step 1: Extracting Brand DNA...');
-    let brandDNA;
+    let brandDNA = FALLBACK_BRAND_DNA;
+    let designTokens = FALLBACK_DESIGN_TOKENS;
+    let designReasoning = FALLBACK_REASONING;
+    const sections = [];
+    const content = {};
+
     try {
-      const brandPrompt = getBrandDNAPrompt(businessName, description, tone, audience);
-      brandDNA = await generateJSON(brandPrompt);
-      
+      console.log('🤖 Generating complete website content via Gemini (Single Call)...');
+      const completePrompt = getCompleteWebsitePrompt(businessName, description, tone, audience);
+      const result = await generateJSON(completePrompt);
+
+      brandDNA = { ...FALLBACK_BRAND_DNA, ...result.brandDNA } || FALLBACK_BRAND_DNA;
+      designTokens = { ...FALLBACK_DESIGN_TOKENS, ...result.designTokens } || FALLBACK_DESIGN_TOKENS;
+      designReasoning = { ...FALLBACK_REASONING, ...result.designReasoning } || FALLBACK_REASONING;
+
       // Ensure personality scores exist
       if (!brandDNA.personality) {
         brandDNA.personality = generatePersonalityFromTone(brandDNA.tone || []);
@@ -119,103 +120,87 @@ router.post('/generate', async (req, res) => {
       if (!brandDNA.audiencePersonas) {
         brandDNA.audiencePersonas = generatePersonasFromAudience(brandDNA.audience);
       }
-      
-      console.log('✅ Brand DNA extracted');
-    } catch (error) {
-      console.warn('⚠️ Brand DNA generation failed, using fallback:', error.message);
-      brandDNA = FALLBACK_BRAND_DNA;
-    }
 
-    // Step 2: Generate Design Tokens with Reasoning
-    console.log('🎨 Step 2: Generating Design Tokens...');
-    let designTokens;
-    let designReasoning;
-    try {
-      const designPrompt = getDesignDecisionsPrompt(brandDNA);
-      const designResult = await generateJSON(designPrompt);
-      
-      // Extract reasoning if included in response
-      if (designResult.reasoning) {
-        designReasoning = designResult.reasoning;
-        delete designResult.reasoning;
-        designTokens = designResult;
-      } else {
-        designTokens = designResult;
-        designReasoning = generateReasoningFromTokens(designTokens, brandDNA);
+      if (result.content) {
+        if (result.content.hero) content.hero = result.content.hero;
+        if (result.content.features) content.features = result.content.features;
+        if (result.content.testimonials) content.testimonials = result.content.testimonials;
+        if (result.content.cta) content.cta = result.content.cta;
       }
-      
-      console.log('✅ Design tokens generated');
+
+      console.log('✅ Website generated successfully!');
     } catch (error) {
-      console.warn('⚠️ Design tokens generation failed, using fallback:', error.message);
-      designTokens = FALLBACK_DESIGN_TOKENS;
-      designReasoning = FALLBACK_REASONING;
+      console.warn('⚠️ Website generation failed, using fallbacks entirely:', error.message);
     }
 
-    // Step 3: Generate Content for each section (parallel for speed)
-    console.log('📝 Step 3: Generating Content...');
-    const sections = [];
-    const content = {};
+    // Provide fallbacks if missing content
+    if (!content.hero) {
+      content.hero = {
+        headline: `Welcome to ${businessName}`,
+        subheadline: description.substring(0, 120),
+        cta: { text: 'Get Started', link: '#contact' }
+      };
+    }
+    sections.push({
+      id: 'hero-1',
+      type: 'hero',
+      content: content.hero,
+      variant: 'centered'
+    });
 
-    const [
-      heroContent,
-      featuresContent,
-      testimonialsContent,
-      ctaContent
-    ] = await Promise.all([
-      generateSectionContent({
-        sectionName: 'Hero',
-        promptFactory: () => getHeroContentPrompt(businessName, brandDNA),
-        fallback: {
-          headline: `Welcome to ${businessName}`,
-          subheadline: description.substring(0, 120),
-          cta: { text: 'Get Started', link: '#contact' }
-        }
-      }),
-      generateSectionContent({
-        sectionName: 'Features',
-        promptFactory: () => getFeaturesContentPrompt(businessName, brandDNA),
-        fallback: {
-          title: `Why Choose ${businessName}`,
-          items: [
-            { icon: 'star', title: 'Quality Service', description: 'We deliver exceptional quality in everything we do.' },
-            { icon: 'users', title: 'Customer Focus', description: 'Your satisfaction is our top priority.' },
-            { icon: 'shield', title: 'Trusted & Reliable', description: 'Count on us to deliver consistent results.' },
-            { icon: 'zap', title: 'Fast & Efficient', description: 'Quick turnaround without compromising quality.' }
-          ]
-        }
-      }),
-      generateSectionContent({
-        sectionName: 'Testimonials',
-        promptFactory: () => getTestimonialsContentPrompt(businessName, brandDNA),
-        fallback: {
-          title: 'What Our Customers Say',
-          testimonials: [
-            { quote: 'Exceptional service that exceeded my expectations. Highly recommended!', author: 'Sarah M.', role: 'Happy Customer' },
-            { quote: 'Professional, reliable, and truly cares about their customers.', author: 'John D.', role: 'Business Owner' },
-            { quote: 'The best experience I\'ve had. Will definitely come back!', author: 'Emily R.', role: 'Regular Customer' }
-          ]
-        }
-      }),
-      generateSectionContent({
-        sectionName: 'CTA',
-        promptFactory: () => getCTAContentPrompt(businessName, brandDNA),
-        fallback: {
-          headline: 'Ready to Get Started?',
-          supportingText: 'Join our satisfied customers and experience the difference today.',
-          cta: { text: 'Contact Us', link: '#contact' }
-        }
-      })
-    ]);
+    if (!content.features) {
+      content.features = {
+        title: `Why Choose ${businessName}`,
+        items: [
+          { icon: 'star', title: 'Quality Service', description: 'We deliver exceptional quality in everything we do.' },
+          { icon: 'users', title: 'Customer Focus', description: 'Your satisfaction is our top priority.' },
+          { icon: 'shield', title: 'Trusted & Reliable', description: 'Count on us to deliver consistent results.' },
+          { icon: 'zap', title: 'Fast & Efficient', description: 'Quick turnaround without compromising quality.' }
+        ]
+      };
+    }
+    // Rename items to match expected
+    if (content.features.items === undefined && content.features.features) {
+      content.features.items = content.features.features;
+    }
+    sections.push({
+      id: 'features-1',
+      type: 'features',
+      content: content.features,
+      variant: 'grid'
+    });
 
-    sections.push({ id: 'hero-1', type: 'hero', content: heroContent, variant: 'centered' });
-    sections.push({ id: 'features-1', type: 'features', content: featuresContent, variant: 'grid' });
-    sections.push({ id: 'testimonials-1', type: 'testimonials', content: testimonialsContent, variant: 'grid' });
-    sections.push({ id: 'cta-1', type: 'cta', content: ctaContent, variant: 'centered' });
+    if (!content.testimonials) {
+      content.testimonials = {
+        title: 'What Our Customers Say',
+        testimonials: [
+          { quote: 'Exceptional service that exceeded my expectations. Highly recommended!', author: 'Sarah M.', role: 'Happy Customer' },
+          { quote: 'Professional, reliable, and truly cares about their customers.', author: 'John D.', role: 'Business Owner' },
+          { quote: 'The best experience I\'ve had. Will definitely come back!', author: 'Emily R.', role: 'Regular Customer' }
+        ]
+      };
+    }
 
-    content.hero = heroContent;
-    content.features = featuresContent;
-    content.testimonials = testimonialsContent;
-    content.cta = ctaContent;
+    sections.push({
+      id: 'testimonials-1',
+      type: 'testimonials',
+      content: content.testimonials,
+      variant: 'grid'
+    });
+
+    if (!content.cta) {
+      content.cta = {
+        headline: 'Ready to Get Started?',
+        supportingText: 'Join our satisfied customers and experience the difference today.',
+        cta: { text: 'Contact Us', link: '#contact' }
+      };
+    }
+    sections.push({
+      id: 'cta-1',
+      type: 'cta',
+      content: content.cta,
+      variant: 'centered'
+    });
 
     // Footer Section
     sections.push({
@@ -242,9 +227,9 @@ router.post('/generate', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Website generation error:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate website', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Failed to generate website',
+      details: error.message
     });
   }
 });
@@ -262,9 +247,9 @@ function generatePersonalityFromTone(tones) {
     innovative: { professional: 60, friendly: 50, bold: 70, elegant: 55, innovative: 95 },
     traditional: { professional: 80, friendly: 50, bold: 35, elegant: 70, innovative: 25 }
   };
-  
+
   let result = { professional: 60, friendly: 60, bold: 50, elegant: 50, innovative: 60 };
-  
+
   tones.forEach(tone => {
     const mapping = toneToPersonality[tone.toLowerCase()];
     if (mapping) {
@@ -273,7 +258,7 @@ function generatePersonalityFromTone(tones) {
       });
     }
   });
-  
+
   return result;
 }
 
@@ -289,9 +274,9 @@ function generateEmotionsFromEmotion(emotions) {
     energetic: { trust: 55, calm: 30, joy: 90, confidence: 80 },
     sophisticated: { trust: 80, calm: 70, joy: 50, confidence: 85 }
   };
-  
+
   let result = { trust: 70, calm: 60, joy: 60, confidence: 70 };
-  
+
   emotions.forEach(emotion => {
     const mapping = emotionMapping[emotion.toLowerCase()];
     if (mapping) {
@@ -300,7 +285,7 @@ function generateEmotionsFromEmotion(emotions) {
       });
     }
   });
-  
+
   return result;
 }
 
@@ -312,21 +297,21 @@ function generatePersonasFromAudience(audienceData) {
       { name: "Jordan", role: "Decision Maker", age: "30-55", values: ["Reliability", "Results", "Service"] }
     ];
   }
-  
+
   const primary = audienceData.primary || "General audience";
   const demographics = audienceData.demographics || "All ages";
-  
+
   return [
-    { 
-      name: "Alex", 
-      role: primary.substring(0, 30), 
-      age: extractAgeRange(demographics), 
+    {
+      name: "Alex",
+      role: primary.substring(0, 30),
+      age: extractAgeRange(demographics),
       values: audienceData.psychographics ? audienceData.psychographics.split(',').slice(0, 3).map(s => s.trim()) : ["Quality", "Value"]
     },
-    { 
-      name: "Jordan", 
-      role: "Ideal Customer", 
-      age: extractAgeRange(demographics), 
+    {
+      name: "Jordan",
+      role: "Ideal Customer",
+      age: extractAgeRange(demographics),
       values: audienceData.painPoints ? audienceData.painPoints.slice(0, 3).map(p => solvePainPoint(p)) : ["Trust", "Service"]
     }
   ];
@@ -351,24 +336,13 @@ function solvePainPoint(painPoint) {
     "fast": "Speed",
     "convenient": "Convenience"
   };
-  
+
   for (const [key, value] of Object.entries(conversions)) {
     if (painPoint.toLowerCase().includes(key)) {
       return value;
     }
   }
   return "Quality";
-}
-
-async function generateSectionContent({ sectionName, promptFactory, fallback }) {
-  try {
-    const result = await generateJSON(promptFactory());
-    console.log(`✅ ${sectionName} content generated`);
-    return result;
-  } catch (error) {
-    console.warn(`⚠️ ${sectionName} content failed:`, error.message);
-    return fallback;
-  }
 }
 
 // Helper function to generate reasoning from tokens and brand
@@ -378,7 +352,7 @@ function generateReasoningFromTokens(tokens, brandDNA) {
   const layoutStyle = tokens.layout?.style || 'centered';
   const tones = brandDNA.tone || ['professional'];
   const industry = brandDNA.industry || 'business';
-  
+
   return {
     color: `I chose ${primaryColor} because it evokes ${tones[0]} and resonates with your ${industry} audience. This color creates the ${brandDNA.emotion?.[0] || 'trustworthy'} feeling your brand aims to convey.`,
     typography: `${font} was selected for its ${tones.includes('modern') ? 'modern, clean appearance' : 'excellent readability'} that complements your ${tones[0]} brand tone. It works well for your ${brandDNA.audience?.primary || 'target audience'}.`,

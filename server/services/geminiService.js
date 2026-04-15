@@ -1,4 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fs = require('fs');
+const path = require('path');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
@@ -63,7 +65,44 @@ async function generateWithModel(modelName, prompt) {
   return response.text();
 }
 
+// Debug logging setup
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true';
+const LOGS_DIR = path.join(__dirname, '../logs');
+
+if (DEBUG_MODE && !fs.existsSync(LOGS_DIR)) {
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+}
+
+async function saveDebugLog(prompt, rawText, parsedJson, error = null) {
+  if (!DEBUG_MODE) return;
+
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
+    const logFile = path.join(LOGS_DIR, `gemini-call-${timestamp}-${uniqueSuffix}.json`);
+
+    // Create a redacted copy to prevent sensitive data leaks in logs
+    const redactedPrompt = typeof prompt === 'string'
+      ? prompt.replace(/Business Name: (.*)\n/, 'Business Name: [REDACTED]\n')
+      : prompt;
+
+    const logData = {
+      timestamp: new Date().toISOString(),
+      prompt: redactedPrompt,
+      rawResponse: rawText,
+      parsedResult: parsedJson,
+      error: error ? error.message : null
+    };
+
+    await fs.promises.writeFile(logFile, JSON.stringify(logData, null, 2));
+    console.log(`[DEBUG] Gemini input/output saved to: ${logFile}`);
+  } catch (writeError) {
+    console.warn(`[DEBUG] Failed to write debug log: ${writeError.message}`);
+  }
+}
+
 async function generateJSON(prompt) {
+  let text = '';
   try {
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "your_gemini_api_key_here") {
       throw new Error("GEMINI_API_KEY is missing or placeholder value is set in server/.env");
@@ -76,9 +115,11 @@ async function generateJSON(prompt) {
       for (let attempt = 1; attempt <= GEMINI_MAX_RETRIES; attempt++) {
         try {
           console.log(`🤖 Gemini model in use: ${modelName} (attempt ${attempt}/${GEMINI_MAX_RETRIES})`);
-          const text = await generateWithModel(modelName, prompt);
+          text = await generateWithModel(modelName, prompt);
           const jsonText = extractJsonText(text);
-          return JSON.parse(jsonText);
+          const parsed = JSON.parse(jsonText);
+          saveDebugLog(prompt, text, parsed).catch(console.error);
+          return parsed;
         } catch (error) {
           lastError = error;
           const retryable = isRetryableError(error);
@@ -98,6 +139,7 @@ async function generateJSON(prompt) {
 
     throw lastError || new Error("Gemini request failed with unknown error");
   } catch (error) {
+    saveDebugLog(prompt, text, null, error).catch(console.error);
     console.error("Gemini API Error:", error.message);
     throw new Error(`Failed to generate JSON: ${error.message}`);
   }
