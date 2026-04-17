@@ -422,11 +422,11 @@ export default function BrandAnalysisDashboard({ data, onProceed }) {
             onClick={onProceed}
             className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
-            Continue to Brand Tuning
+            Continue to Design Variations
             <ChevronRight className="w-5 h-5" />
           </button>
           <p className="text-sm text-slate-500 mt-3">
-            Fine-tune these decisions or continue with AI recommendations
+            Choose your preferred visual style based on these recommendations
           </p>
         </div>
       </div>

@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import './index.css'
 import BrandInputForm from './components/builder/BrandInputForm'
+import BrandAnalysisDashboard from './components/analysis/BrandAnalysisDashboard'
 import DesignVariations from './components/variations/DesignVariations'
 import WebsitePreview from './components/preview/WebsitePreview'
-import { Sparkles, Layout, Globe } from 'lucide-react'
+import { Sparkles, Brain, Layout, Globe } from 'lucide-react'
 
 // Steps in the brand intelligence flow
 const STEPS = [
   { id: 'input', label: 'Brand Input', icon: Sparkles },
+  { id: 'analysis', label: 'AI Analysis', icon: Brain },
   { id: 'variations', label: 'Variations', icon: Layout },
   { id: 'preview', label: 'Final Website', icon: Globe },
 ]
@@ -18,8 +20,11 @@ function App() {
   const [selectedVariation, setSelectedVariation] = useState(null)
 
   const handleBrandAnalysisComplete = (data) => {
-    // Data here is the full response returning `variations`
     setBrandData(data)
+    setCurrentStep('analysis')
+  }
+
+  const handleProceedToVariations = () => {
     setCurrentStep('variations')
   }
 
@@ -105,6 +110,13 @@ function App() {
       <main className="relative overflow-hidden">
         {currentStep === 'input' && (
           <BrandInputForm onComplete={handleBrandAnalysisComplete} />
+        )}
+
+        {currentStep === 'analysis' && brandData && (
+          <BrandAnalysisDashboard
+            data={brandData}
+            onProceed={handleProceedToVariations}
+          />
         )}
 
         {currentStep === 'variations' && brandData && (
