@@ -388,7 +388,7 @@ export default function BrandTuningStudio({ data, onProceed }) {
         <div className="text-center mt-10">
           <button
             onClick={handleProceed}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
             Continue to Design Variations
             <ChevronRight className="w-5 h-5" />

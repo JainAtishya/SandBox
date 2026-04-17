@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 /* ================================================
    SLDS 2 (Salesforce Lightning Design System) Tokens
@@ -93,7 +93,7 @@ html {
 }
 
 body {
-  margin: 0;
+  margin: 0 0 -1px 0 !important; position: relative; z-index: 10;
   font-family: var(--font-body);
   font-size: 1rem;
   color: var(--slds-g-color-neutral-base-80);
@@ -103,12 +103,35 @@ body {
   line-height: 1.5;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p,
+li,
+label,
+input,
+textarea,
+button,
+select {
+  font-family: var(--font-body);
+}
+
 /* ================================================
    Layout wrappers around real SLDS
    ================================================ */
 
 .slds-section {
   padding: var(--spacing-section) 0;
+  margin: 0 0 -1px 0 !important; position: relative; z-index: 10;
 }
 
 .slds-container {
@@ -172,6 +195,24 @@ body {
 
 .website-preview-frame--desktop {
   max-width: 100%;
+}
+
+/* Builder-only polish: reduce large initial gap before first section in preview */
+.website-preview-frame > section:first-child {
+  margin-top: 0;
+}
+
+.website-preview-frame > section:first-child.slds-section {
+  padding-top: clamp(1.25rem, 2.8vw, 2.25rem) !important;
+}
+
+.website-preview-frame .slds-section {
+  padding-top: clamp(3rem, 5.2vw, 4.25rem);
+  padding-bottom: clamp(3rem, 5.2vw, 4.25rem);
+}
+
+.website-preview-frame .min-h-\[52vh\] {
+  min-height: 44vh;
 }
 
 .website-preview-frame--tablet {
@@ -337,3 +378,5 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

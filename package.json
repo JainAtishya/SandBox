@@ -4,7 +4,7 @@
     "description": "Root workspace to run client and server concurrently",
     "private": true,
     "scripts": {
-        "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+        "start": "concurrently --names server,client --prefix-colors blue,green --kill-others-on-fail \"npm run start:server\" \"npm run start:client\"",
         "start:client": "cd client && npm run dev",
         "start:server": "cd server && npm start",
         "install:all": "npm install && cd server && npm install && cd ../client && npm install"

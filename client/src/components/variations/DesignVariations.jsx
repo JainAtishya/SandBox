@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Layout, Check, Sparkles, ChevronRight, Zap, Heart, Crown } from 'lucide-react'
-import { generateWebsite } from '../../services/api'
 
 // Variation Card Component
 const VariationCard = ({ variation, isSelected, onSelect, isLoading }) => {
@@ -59,29 +58,24 @@ const VariationCard = ({ variation, isSelected, onSelect, isLoading }) => {
           <div 
             className={`p-6 text-center relative overflow-hidden`}
             style={{ 
-              background: variation.id === 'premium'
-                ? 'linear-gradient(135deg, #0f172a 0%, #1f2937 45%, #111827 100%)'
-                : `linear-gradient(135deg, ${colors.primary}12, ${colors.secondary || colors.primary}08)`
+              background: `linear-gradient(135deg, ${colors.primary || '#3B82F6'}12, ${colors.secondary || colors.primary || '#3B82F6'}08)`
             }}
           >
-            {variation.id === 'premium' && (
-              <div className="absolute inset-0 premium-shimmer" />
-            )}
             <h4 
               className="text-xl font-bold mb-2"
               style={{ 
-                color: variation.id === 'premium' ? '#F8FAFC' : colors.primary,
+                color: colors.primary || '#1E3A8A',
                 fontFamily: typography.fontFamily?.heading || 'Inter'
               }}
             >
               {data.content?.hero?.headline || data.businessName}
             </h4>
-            <p className={`text-sm mb-4 line-clamp-2 ${variation.id === 'premium' ? 'text-slate-200' : 'text-slate-600'}`}>
+            <p className="text-sm mb-4 line-clamp-2 text-slate-600">
               {data.content?.hero?.subheadline || 'Your brand message here'}
             </p>
             <button
-              className={`px-4 py-2 text-white text-sm font-medium rounded-lg transition-transform hover:scale-105 ${variation.id === 'premium' ? 'premium-glow-btn' : ''}`}
-              style={{ backgroundColor: variation.id === 'premium' ? '#C9A45C' : colors.primary }}
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-transform hover:scale-105"
+              style={{ backgroundColor: colors.primary || '#1E40AF' }}
             >
               {data.content?.hero?.cta?.text || 'Get Started'}
             </button>
@@ -159,116 +153,66 @@ const VariationCard = ({ variation, isSelected, onSelect, isLoading }) => {
 }
 
 export default function DesignVariations({ data, onSelect }) {
+  const serverVariations = data?.variations || []
+  
   const [variations, setVariations] = useState([
     { 
       id: 'confident', 
       name: 'Confident', 
       description: 'Bold and assertive, makes a strong first impression',
       icon: Zap,
-      tone: 'bold, confident, professional',
-      data: null
+      data: serverVariations.find(v => v.id === 'confident') || serverVariations[0] || null
     },
     { 
       id: 'approachable', 
       name: 'Approachable', 
       description: 'Warm and friendly, builds instant trust',
       icon: Heart,
-      tone: 'friendly, warm, approachable',
-      data: null
+      data: serverVariations.find(v => v.id === 'approachable') || serverVariations[1] || serverVariations[0] || null
     },
     { 
       id: 'premium', 
       name: 'Premium', 
       description: 'Elegant and sophisticated, conveys quality',
       icon: Crown,
-      tone: 'elegant, sophisticated, premium',
-      data: null
+      data: serverVariations.find(v => v.id === 'premium') || serverVariations[2] || serverVariations[0] || null
     }
   ])
   
-  const [selectedId, setSelectedId] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState('confident')
+  const [isLoading, setIsLoading] = useState(false)
   const [loadingId, setLoadingId] = useState(null)
   
   useEffect(() => {
-    generateAllVariations()
-  }, [])
-  
-  const generateAllVariations = async () => {
-    setIsLoading(true)
-    
-    // Generate variations sequentially to avoid rate limiting
-    const updatedVariations = []
-    
-    for (const variation of variations) {
-      setLoadingId(variation.id)
-      try {
-        const result = await generateWebsite({
-          businessName: data.businessName,
-          description: data.description,
-          tone: variation.tone,
-          audience: data.audience
-        })
-        const mergedResult = data.sections?.length
-          ? {
-              ...result,
-              sections: data.sections,
-              content: syncContentFromSections(data.sections, result.content || data.content || {})
-            }
-          : result
-        updatedVariations.push({ ...variation, data: mergedResult })
-      } catch (error) {
-        console.error(`Failed to generate ${variation.name}:`, error)
-        // Use the original data as fallback with some modifications
-        updatedVariations.push({ 
-          ...variation, 
-          data: {
-            ...data,
-            designTokens: modifyTokensForVariation(data.designTokens, variation.id)
-          }
-        })
-      }
-      
-      // Update state after each variation
-      setVariations([...updatedVariations, ...variations.slice(updatedVariations.length)])
+    if (data?.variations) {
+      setVariations([
+        { 
+          id: 'confident', 
+          name: 'Confident', 
+          description: 'Bold and assertive, makes a strong first impression',
+          icon: Zap,
+          data: data.variations.find(v => v.id === 'confident') || data.variations[0] || null
+        },
+        { 
+          id: 'approachable', 
+          name: 'Approachable', 
+          description: 'Warm and friendly, builds instant trust',
+          icon: Heart,
+          data: data.variations.find(v => v.id === 'approachable') || data.variations[1] || data.variations[0] || null
+        },
+        { 
+          id: 'premium', 
+          name: 'Premium', 
+          description: 'Elegant and sophisticated, conveys quality',
+          icon: Crown,
+          data: data.variations.find(v => v.id === 'premium') || data.variations[2] || data.variations[0] || null
+        }
+      ])
     }
-    
-    setVariations(updatedVariations)
-    // Auto-select the first variation
-    setSelectedId(updatedVariations[0].id)
+    setSelectedId('confident')
     setIsLoading(false)
     setLoadingId(null)
-  }
-  
-  const modifyTokensForVariation = (tokens, variationId) => {
-    // Create slightly different tokens for each variation as fallback
-    const baseTokens = tokens || {}
-    const colorAdjustments = {
-      confident: { primary: '#1E40AF', secondary: '#7C3AED', accent: '#DC2626' },
-      approachable: { primary: '#0F766E', secondary: '#0EA5E9', accent: '#F59E0B' },
-      premium: { primary: '#2B1B3B', secondary: '#C9A45C', accent: '#F4B400' }
-    }
-    const typographyAdjustments = {
-      confident: { heading: 'Montserrat', body: 'Roboto' },
-      approachable: { heading: 'Inter', body: 'Open Sans' },
-      premium: { heading: 'Playfair Display', body: 'Lora' }
-    }
-    
-    return {
-      ...baseTokens,
-      colors: {
-        ...baseTokens.colors,
-        ...colorAdjustments[variationId]
-      },
-      typography: {
-        ...baseTokens.typography,
-        fontFamily: {
-          ...(baseTokens.typography?.fontFamily || {}),
-          ...(typographyAdjustments[variationId] || {})
-        }
-      }
-    }
-  }
+  }, [data])
   
   const handleSelect = (id) => {
     setSelectedId(id)
@@ -284,6 +228,7 @@ export default function DesignVariations({ data, onSelect }) {
       })
     }
   }
+
   
   return (
     <div className="min-h-screen bg-slate-950 py-8">
@@ -344,7 +289,7 @@ export default function DesignVariations({ data, onSelect }) {
             disabled={!selectedId || isLoading}
             className={`inline-flex items-center gap-2 px-8 py-4 font-semibold rounded-xl transition-all shadow-lg ${
               selectedId && !isLoading
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500 shadow-blue-500/25 hover:shadow-blue-500/40'
+                ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500 shadow-blue-500/25 hover:shadow-blue-500/40'
                 : 'bg-slate-700 text-slate-400 cursor-not-allowed'
             }`}
           >
@@ -369,12 +314,3 @@ export default function DesignVariations({ data, onSelect }) {
   )
 }
 
-function syncContentFromSections(sections, existingContent) {
-  const nextContent = { ...(existingContent || {}) }
-  sections.forEach((section) => {
-    if (section.type && section.content) {
-      nextContent[section.type] = section.content
-    }
-  })
-  return nextContent
-}

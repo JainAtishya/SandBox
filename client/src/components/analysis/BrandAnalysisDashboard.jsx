@@ -166,7 +166,7 @@ const AIReasoningCard = ({ title, explanation, icon: Icon, color }) => {
     >
       <div className="flex items-start gap-3">
         <div 
-          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${color}20` }}
         >
           <Icon className="w-5 h-5" style={{ color }} />
@@ -188,7 +188,7 @@ const PersonaCard = ({ persona }) => {
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
+        <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
           {persona.name.charAt(0)}
         </div>
         <div>
@@ -240,16 +240,13 @@ export default function BrandAnalysisDashboard({ data, onProceed }) {
     { name: 'Innovative', value: brandDNA.personality?.innovative || 80 },
   ]
   
-  // Emotion data
-  const emotionData = [
-    { name: 'Trust', value: brandDNA.emotions?.trust || 85 },
-    { name: 'Calm', value: brandDNA.emotions?.calm || 72 },
-    { name: 'Joy', value: brandDNA.emotions?.joy || 68 },
-    { name: 'Confidence', value: brandDNA.emotions?.confidence || 75 },
-  ]
+  // Emotion data (prefer explicit emotion labels, fallback to score map)
+  const emotionData = buildEmotionData(brandDNA)
   
   // Audience personas
-  const personas = brandDNA.audiencePersonas || [
+  const personas = Array.isArray(brandDNA.audiencePersonas) && brandDNA.audiencePersonas.length
+    ? brandDNA.audiencePersonas
+    : [
     { name: 'Sarah', role: 'Marketing Manager', age: '28-35', values: ['Quality', 'Speed', 'Design'] },
     { name: 'Michael', role: 'Small Business Owner', age: '35-45', values: ['Value', 'Reliability', 'Trust'] },
   ]
@@ -423,7 +420,7 @@ export default function BrandAnalysisDashboard({ data, onProceed }) {
         <div className={`text-center transition-all duration-700 ${animationPhase >= 4 ? 'opacity-100' : 'opacity-0'}`}>
           <button
             onClick={onProceed}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
             Continue to Brand Tuning
             <ChevronRight className="w-5 h-5" />
@@ -435,4 +432,55 @@ export default function BrandAnalysisDashboard({ data, onProceed }) {
       </div>
     </div>
   )
+}
+
+function buildEmotionData(brandDNA) {
+  const explicitEmotionLabels = Array.isArray(brandDNA?.emotion) ? brandDNA.emotion : []
+  const emotionScores = brandDNA?.emotions && typeof brandDNA.emotions === 'object' ? brandDNA.emotions : {}
+
+  const labelToScoreKey = {
+    trustworthy: 'trust',
+    reliable: 'confidence',
+    calm: 'calm',
+    exciting: 'joy',
+    inspiring: 'confidence',
+    luxurious: 'confidence',
+    accessible: 'calm',
+    energetic: 'joy',
+    sophisticated: 'confidence',
+    creative: 'joy',
+    comforting: 'calm',
+    empowering: 'confidence'
+  }
+
+  const fromLabels = explicitEmotionLabels
+    .slice(0, 4)
+    .map((label, index) => {
+      const normalized = String(label || '').toLowerCase()
+      const mappedKey = labelToScoreKey[normalized]
+      const base = mappedKey && Number.isFinite(Number(emotionScores[mappedKey]))
+        ? Number(emotionScores[mappedKey])
+        : 62 + index * 7
+      return {
+        name: toTitleCase(label),
+        value: Math.max(45, Math.min(95, Math.round(base)))
+      }
+    })
+
+  if (fromLabels.length > 0) return fromLabels
+
+  return [
+    { name: 'Trust', value: Number(emotionScores.trust) || 85 },
+    { name: 'Calm', value: Number(emotionScores.calm) || 72 },
+    { name: 'Joy', value: Number(emotionScores.joy) || 68 },
+    { name: 'Confidence', value: Number(emotionScores.confidence) || 75 }
+  ]
+}
+
+function toTitleCase(text) {
+  return String(text || '')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
 }

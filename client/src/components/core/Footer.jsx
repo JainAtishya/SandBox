@@ -32,21 +32,25 @@ export default function Footer({ content, businessName }) {
 
   return (
     <footer 
-      className="text-white"
+      className="text-white block m-0 w-full"
       style={{ 
         backgroundColor: 'var(--color-neutral-900)',
         paddingTop: 'var(--spacing-component)',
         paddingBottom: 'var(--spacing-element)'
       }}
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="grid md:grid-cols-4 gap-12 pb-12 border-b border-white/10">
           {/* Brand Column */}
           <div className="md:col-span-2">
             <h3 
-              className="text-2xl font-bold mb-4"
-              style={{ fontFamily: 'var(--font-heading)' }}
+              className="font-bold mb-4"
+              style={{ 
+                fontFamily: 'var(--font-heading)',
+                fontSize: 'clamp(1.5rem, 4vw, 1.875rem)',
+                lineHeight: 1.2
+              }}
             >
               {businessName || 'Business Name'}
             </h3>

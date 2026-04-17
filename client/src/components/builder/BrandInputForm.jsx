@@ -37,7 +37,10 @@ const LoadingAnimation = ({ step, thoughts = [] }) => {
           {/* Animated rings */}
           <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 animate-ping" />
           <div className="absolute inset-2 rounded-full border-4 border-purple-500/30 animate-pulse" />
-          <div className="absolute inset-4 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+          <div
+            className="absolute inset-4 rounded-full flex items-center justify-center"
+            style={{ backgroundImage: 'linear-gradient(135deg, #2563eb 0%, #9333ea 100%)' }}
+          >
             <Brain className="w-8 h-8 text-white animate-pulse" />
           </div>
         </div>
@@ -81,7 +84,6 @@ const LoadingAnimation = ({ step, thoughts = [] }) => {
   );
 };
 
-const guidedToneOptions = ['professional', 'friendly', 'bold', 'elegant', 'playful', 'innovative', 'warm', 'trustworthy'];
 const locationTypes = ['Local neighborhood', 'City-wide', 'Online only', 'Regional'];
 const businessGoals = ['More walk-ins', 'More calls/leads', 'Online bookings', 'Stronger brand trust'];
 const differentiators = [
@@ -92,6 +94,73 @@ const differentiators = [
   'Premium experience',
   'Highly personalized service'
 ];
+const toneChipClassMap = {
+  blue: 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20',
+  green: 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/20',
+  orange: 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-orange-500/20',
+  purple: 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20',
+  pink: 'bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border-pink-500/20',
+  cyan: 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/20'
+};
+const featurePillClassMap = {
+  blue: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+  purple: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
+  green: { bg: 'bg-green-500/10', text: 'text-green-400' },
+  orange: { bg: 'bg-orange-500/10', text: 'text-orange-400' }
+};
+
+const BASE_FORM_DATA = {
+  mode: 'guided',
+  businessName: '',
+  description: '',
+  tone: '',
+  audience: '',
+  category: '',
+  mainService: '',
+  idealCustomer: '',
+  locationType: '',
+  goal: '',
+  differentiator: '',
+  pricePosition: '',
+  highlights: '',
+  heroImageMode: 'none',
+  heroImageDataUrl: ''
+};
+
+const DEMO_PRESETS = {
+  coffee: {
+    ...BASE_FORM_DATA,
+    businessName: 'Bean & Stone Coffee Collective',
+    category: 'Specialty coffee roastery',
+    mainService: 'Single-origin coffee roasting and wholesale supply for specialty cafes',
+    idealCustomer: 'Specialty cafe owners, premium coffee enthusiasts, and design-conscious professionals',
+    locationType: 'City-wide',
+    goal: 'More calls/leads',
+    differentiator: 'Premium experience',
+    pricePosition: 'Premium',
+    highlights: 'Japanese-influenced minimalist aesthetic, direct-trade beans, precision roasting, curated tasting notes',
+    tone: 'minimalist, refined, artisanal, premium, calm',
+    audience: 'Specialty cafe owners and coffee connoisseurs aged 28-55',
+    description: 'Boutique Chandigarh coffee roastery with a minimalist, Japanese-influenced brand. We source single-origin beans and offer precise roast profiles for specialty cafes and conscious home brewers. The website should feel quiet, premium, intentional, and craftsmanship-first.',
+    heroImageMode: 'upload'
+  },
+  fitness: {
+    ...BASE_FORM_DATA,
+    businessName: 'Flow Yoga Studios',
+    category: 'Yoga and wellness studio',
+    mainService: 'Beginner-friendly yoga classes, guided flows, and community wellness sessions',
+    idealCustomer: 'Busy professionals, yoga beginners, and health-focused local residents',
+    locationType: 'Local neighborhood',
+    goal: 'Online bookings',
+    differentiator: 'Highly personalized service',
+    pricePosition: 'Mid-range',
+    highlights: 'Community-first approach, warm instructors, flexible schedules, inclusive classes for all levels',
+    tone: 'energetic, welcoming, inclusive, modern, encouraging',
+    audience: 'Working professionals and first-time yoga learners aged 24-45',
+    description: 'Community-focused yoga studio in Chandigarh helping beginners and busy professionals build sustainable wellness routines. The brand should feel energetic, warm, and trustworthy with clear class booking actions and approachable language.',
+    heroImageMode: 'upload'
+  }
+};
 
 function buildSmartDescription(formData) {
   const lines = [];
@@ -126,35 +195,18 @@ function buildSmartDescription(formData) {
 }
 
 export default function BrandInputForm({ onComplete }) {
-  const [formData, setFormData] = useState({
-    mode: 'guided',
-    businessName: '',
-    description: '',
-    tone: '',
-    audience: '',
-    category: '',
-    mainService: '',
-    idealCustomer: '',
-    locationType: '',
-    goal: '',
-    differentiator: '',
-    pricePosition: '',
-    highlights: '',
-    guidedTone: []
-  });
+  const [formData, setFormData] = useState(DEMO_PRESETS.coffee);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
 
-  const toggleGuidedTone = (toneName) => {
-    setFormData((prev) => {
-      const hasTone = prev.guidedTone.includes(toneName);
-      return {
-        ...prev,
-        guidedTone: hasTone
-          ? prev.guidedTone.filter((t) => t !== toneName)
-          : [...prev.guidedTone, toneName]
-      };
-    });
+  const handleHeroImageUpload = async (file) => {
+    if (!file) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    setFormData((prev) => ({
+      ...prev,
+      heroImageMode: 'upload',
+      heroImageDataUrl: dataUrl
+    }));
   };
 
   const getThinkingLines = () => ([
@@ -170,7 +222,7 @@ export default function BrandInputForm({ onComplete }) {
     
     try {
       const composedDescription = buildSmartDescription(formData);
-      const mergedTone = [formData.tone, ...formData.guidedTone].filter(Boolean).join(', ');
+      const mergedTone = formData.tone;
       const mergedAudience = formData.audience || formData.idealCustomer;
 
       setLoadingStep('Analyzing your brand identity...');
@@ -181,14 +233,22 @@ export default function BrandInputForm({ onComplete }) {
         businessName: formData.businessName,
         description: composedDescription,
         tone: mergedTone,
-        audience: mergedAudience
+        audience: mergedAudience,
+        heroImageMode: formData.heroImageMode
+      });
+
+      const personalizedResult = await personalizeHeroResult(result, {
+        businessName: formData.businessName,
+        description: composedDescription,
+        heroImageMode: formData.heroImageMode,
+        heroImageDataUrl: formData.heroImageDataUrl
       });
       
       setLoadingStep('Generating design system...');
       
       setLoadingStep('Creating your website...');
       
-      onComplete(result);
+      onComplete(personalizedResult);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to generate. Make sure the server is running on port 3001.');
@@ -208,10 +268,8 @@ export default function BrandInputForm({ onComplete }) {
   ];
 
   const industryTemplates = [
-    { name: '☕ Coffee Shop', desc: 'Cozy neighborhood cafe serving artisan coffee', category: 'coffee shop' },
-    { name: '💪 Fitness Studio', desc: 'Modern fitness center for health enthusiasts', category: 'fitness studio' },
-    { name: '🍕 Restaurant', desc: 'Family-friendly restaurant with local cuisine', category: 'restaurant' },
-    { name: '💼 Consulting', desc: 'Professional business consulting services', category: 'consulting' },
+    { key: 'coffee', name: '☕ Coffee Shop', helper: 'Minimalist premium local brand' },
+    { key: 'fitness', name: '💪 Fitness Studio', helper: 'Energetic community local brand' },
   ];
 
   const hasEnoughInput =
@@ -234,7 +292,10 @@ export default function BrandInputForm({ onComplete }) {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
               Transform Your Brand Into
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> a Stunning Website</span>
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(90deg, #60a5fa 0%, #c084fc 100%)' }}
+              > a Stunning Website</span>
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Our AI doesn't just generate websites — it <span className="text-white font-medium">understands</span> your brand 
@@ -250,15 +311,15 @@ export default function BrandInputForm({ onComplete }) {
                 <button
                   key={template.name}
                   type="button"
-                  onClick={() => setFormData({
-                    ...formData,
-                    businessName: template.name.split(' ').slice(1).join(' '),
-                    description: template.desc,
-                    category: template.category
-                  })}
-                  className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-sm text-slate-300 transition-all hover:border-slate-600"
+                  onClick={() => setFormData(DEMO_PRESETS[template.key])}
+                  className={`px-4 py-2 border rounded-xl text-sm transition-all ${
+                    formData.businessName === DEMO_PRESETS[template.key].businessName
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-200'
+                      : 'bg-slate-800/50 hover:bg-slate-700/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                  }`}
                 >
-                  {template.name}
+                  <span className="block">{template.name}</span>
+                  <span className="block text-[11px] text-slate-400">{template.helper}</span>
                 </button>
               ))}
             </div>
@@ -426,6 +487,49 @@ export default function BrandInputForm({ onComplete }) {
                 />
               </div>
 
+              <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4 space-y-3">
+                <p className="text-sm font-semibold text-white">Hero Image Personalization</p>
+                <p className="text-xs text-slate-400">
+                  Choose how your hero should look: upload your own image, or keep gradient-only.
+                </p>
+                <div className="grid md:grid-cols-2 gap-2">
+                  {[
+                    { value: 'none', label: 'No image', hint: 'Brand gradient background only' },
+                    { value: 'upload', label: 'Upload my image', hint: 'Best for personal branding' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, heroImageMode: option.value }))}
+                      className={`text-left px-3 py-2 rounded-lg border transition ${
+                        formData.heroImageMode === option.value
+                          ? 'border-blue-500 bg-blue-500/15 text-blue-200'
+                          : 'border-slate-700 bg-slate-800/40 text-slate-300'
+                      }`}
+                    >
+                      <span className="text-sm font-medium block">{option.label}</span>
+                      <span className="text-[11px] text-slate-400">{option.hint}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {formData.heroImageMode === 'upload' && (
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => handleHeroImageUpload(e.target.files?.[0])}
+                      className="w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-blue-500"
+                    />
+                    {formData.heroImageDataUrl && (
+                      <div className="rounded-lg border border-slate-700 overflow-hidden max-w-xs">
+                        <img src={formData.heroImageDataUrl} alt="Hero preview" className="w-full h-28 object-cover" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Tone */}
                 <div>
@@ -440,24 +544,6 @@ export default function BrandInputForm({ onComplete }) {
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition text-white placeholder:text-slate-500"
                     placeholder="e.g., warm, friendly, professional"
                   />
-                  {formData.mode === 'guided' && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {guidedToneOptions.map((toneName) => (
-                        <button
-                          key={toneName}
-                          type="button"
-                          onClick={() => toggleGuidedTone(toneName)}
-                          className={`px-3 py-1 text-xs rounded-full border transition ${
-                            formData.guidedTone.includes(toneName)
-                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
-                              : 'bg-slate-800/40 text-slate-300 border-slate-700'
-                          }`}
-                        >
-                          {toneName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {toneExamples.map((tone) => (
                       <button
@@ -467,7 +553,7 @@ export default function BrandInputForm({ onComplete }) {
                           ...formData, 
                           tone: formData.tone ? `${formData.tone}, ${tone.name.toLowerCase()}` : tone.name.toLowerCase()
                         })}
-                        className={`px-3 py-1 text-xs bg-${tone.color}-500/10 hover:bg-${tone.color}-500/20 text-${tone.color}-400 border border-${tone.color}-500/20 rounded-full transition`}
+                        className={`px-3 py-1 text-xs border rounded-full transition ${toneChipClassMap[tone.color] || toneChipClassMap.blue}`}
                       >
                         + {tone.name}
                       </button>
@@ -504,7 +590,8 @@ export default function BrandInputForm({ onComplete }) {
               <button
                 type="submit"
                 disabled={loading || !hasEnoughInput}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-3 text-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                className="w-full text-white py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-3 text-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                style={{ backgroundImage: 'linear-gradient(90deg, #2563eb 0%, #9333ea 100%)' }}
               >
                 <Brain className="w-5 h-5" />
                 Analyze My Brand & Generate Website
@@ -521,8 +608,8 @@ export default function BrandInputForm({ onComplete }) {
               { icon: Zap, title: 'SLDS 2', desc: 'Enterprise-grade tokens', color: 'orange' },
             ].map((feature, i) => (
               <div key={i} className="p-4 bg-slate-900/30 rounded-xl border border-slate-800/50 text-center">
-                <div className={`w-10 h-10 bg-${feature.color}-500/10 rounded-lg flex items-center justify-center mx-auto mb-2`}>
-                  <feature.icon className={`w-5 h-5 text-${feature.color}-400`} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2 ${(featurePillClassMap[feature.color] || featurePillClassMap.blue).bg}`}>
+                  <feature.icon className={`w-5 h-5 ${(featurePillClassMap[feature.color] || featurePillClassMap.blue).text}`} />
                 </div>
                 <h3 className="font-semibold text-white text-sm mb-1">{feature.title}</h3>
                 <p className="text-xs text-slate-500">{feature.desc}</p>
@@ -541,4 +628,179 @@ export default function BrandInputForm({ onComplete }) {
       </div>
     </>
   );
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function personalizeHeroResult(result, options) {
+  const base = result && typeof result === 'object' ? result : {};
+  const mode = options?.heroImageMode || 'none';
+  if (mode !== 'upload' || !options?.heroImageDataUrl) {
+    return base;
+  }
+
+  const heroWithImage = {
+    ...(base.content?.hero || {}),
+    imageUrl: options.heroImageDataUrl,
+    imageAlt: `${options.businessName || 'Business'} hero image`,
+    imageSource: 'upload',
+    imagePosition: 'center',
+    overlayStrength: 50
+  };
+
+  const nextSections = Array.isArray(base.sections)
+    ? base.sections.map((section) =>
+        section.type === 'hero' ? { ...section, content: heroWithImage } : section
+      )
+    : base.sections;
+
+  const colorSync = await extractPaletteFromImage(options.heroImageDataUrl).catch(() => null);
+  const nextDesignTokens = colorSync
+    ? {
+        ...(base.designTokens || {}),
+        colors: {
+          ...(base.designTokens?.colors || {}),
+          primary: colorSync.primary,
+          secondary: colorSync.secondary,
+          accent: colorSync.accent
+        }
+      }
+    : base.designTokens;
+
+  return {
+    ...base,
+    designTokens: nextDesignTokens,
+    content: {
+      ...(base.content || {}),
+      hero: heroWithImage
+    },
+    sections: nextSections
+  };
+}
+
+async function extractPaletteFromImage(imageUrl) {
+  const average = await getAverageRgb(imageUrl);
+  const hsl = rgbToHsl(average.r, average.g, average.b);
+
+  return {
+    primary: rgbToHex(average.r, average.g, average.b),
+    secondary: hslToHex((hsl.h + 28) % 360, Math.min(0.72, hsl.s + 0.08), Math.max(0.22, hsl.l - 0.1)),
+    accent: hslToHex((hsl.h + 180) % 360, Math.min(0.8, hsl.s + 0.1), Math.max(0.35, hsl.l + 0.08))
+  };
+}
+
+function getAverageRgb(imageUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas context unavailable'));
+
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let count = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha < 16) continue;
+        r += data[i];
+        g += data[i + 1];
+        b += data[i + 2];
+        count += 1;
+      }
+
+      if (!count) return reject(new Error('Unable to sample image colors'));
+      resolve({
+        r: Math.round(r / count),
+        g: Math.round(g / count),
+        b: Math.round(b / count)
+      });
+    };
+    image.onerror = () => reject(new Error('Failed to load image for color sync'));
+    image.src = imageUrl;
+  });
+}
+
+function rgbToHex(r, g, b) {
+  return `#${[r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function rgbToHsl(r, g, b) {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (delta !== 0) {
+    s = delta / (1 - Math.abs(2 * l - 1));
+    switch (max) {
+      case rn:
+        h = ((gn - bn) / delta) % 6;
+        break;
+      case gn:
+        h = (bn - rn) / delta + 2;
+        break;
+      default:
+        h = (rn - gn) / delta + 4;
+        break;
+    }
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return { h, s, l };
+}
+
+function hslToHex(h, s, l) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+
+  if (h < 60) {
+    rPrime = c;
+    gPrime = x;
+  } else if (h < 120) {
+    rPrime = x;
+    gPrime = c;
+  } else if (h < 180) {
+    gPrime = c;
+    bPrime = x;
+  } else if (h < 240) {
+    gPrime = x;
+    bPrime = c;
+  } else if (h < 300) {
+    rPrime = x;
+    bPrime = c;
+  } else {
+    rPrime = c;
+    bPrime = x;
+  }
+
+  const r = Math.round((rPrime + m) * 255);
+  const g = Math.round((gPrime + m) * 255);
+  const b = Math.round((bPrime + m) * 255);
+  return rgbToHex(r, g, b);
 }

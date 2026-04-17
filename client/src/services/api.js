@@ -22,12 +22,13 @@ export const generateContent = async (sectionType, businessName, brandDNA) => {
 };
 
 // Main website generation function
-export const generateWebsite = async ({ businessName, description, tone, audience }) => {
+export const generateWebsite = async ({ businessName, description, tone, audience, heroImageMode }) => {
   const response = await axios.post(`${API_BASE}/website/generate`, {
     businessName,
     description,
     tone,
-    audience
+    audience,
+    heroImageMode
   });
   return response.data;
 };

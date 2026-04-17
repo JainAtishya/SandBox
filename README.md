@@ -33,6 +33,7 @@ SandBox is an AI-powered brand analysis and website generation platform that tur
 - Emotion and personality visualization
 - Brand tuning workflow
 - Website preview and variations
+- Hero personalization modes: no image, user-uploaded image, or auto-selected hero image
 
 ## Requirements
 
@@ -62,6 +63,9 @@ npm install
 Create a file named .env inside the server folder and add:
 
 GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_FALLBACK_MODELS=gemini-2.5-flash,gemini-1.5-flash
+WEBSITE_CACHE_TTL_MS=900000
 PORT=3001
 
 ## Running the App
@@ -111,6 +115,9 @@ Main generation flow:
 ## Environment Variables
 
 - GEMINI_API_KEY: required for AI generation
+- GEMINI_MODEL: primary model for generation (use a flash-lite model to reduce quota usage)
+- GEMINI_FALLBACK_MODELS: comma-separated fallback models when primary is rate-limited
+- WEBSITE_CACHE_TTL_MS: cache duration for identical generation requests in milliseconds
 - PORT: optional, defaults to 3001
 
 ## Security
